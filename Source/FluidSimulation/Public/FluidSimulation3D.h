@@ -30,6 +30,9 @@
 #include "FluidSimulation3D.h"
 #include <vector>
 
+DECLARE_STATS_GROUP(TEXT("Atmospherics"), STATGROUP_AtmosStats, STATCAT_Advanced);
+DECLARE_CYCLE_STAT_EXTERN(TEXT("AtmosUpdatesCount"), STAT_AtmosUpdatesCount, STATGROUP_AtmosStats, FLUIDSIMULATION_API);
+
 // Defines how fluid objects can interact with each other in order to create a fluid simulation
 class FLUIDSIMULATION_API FluidSimulation3D
 {

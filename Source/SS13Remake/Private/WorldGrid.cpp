@@ -47,7 +47,5 @@ float AWorldGrid::GetAtmoStatusByLocation(FVector location) const
     auto y = FMath::FloorToInt(index.Y);
     auto z = FMath::FloorToInt(index.Z);
 
-    UE_LOG(LogSS13Remake, Log, TEXT("GetValueAtLock=(x=%d,y=%d,z=%d)"), x, y, z);
-
     return GetAtmoStatusByIndex(x, y, z);
 }

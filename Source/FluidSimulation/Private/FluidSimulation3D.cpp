@@ -26,6 +26,7 @@
 #include "Public/FluidSimulation3D.h"
 #include "UnrealMathUtility.h"
 
+DEFINE_STAT(STAT_AtmosUpdatesCount);
 
 FluidSimulation3D::FluidSimulation3D(int32 xSize, int32 ySize, int32 zSize, float dt)
     : m_diffusionIter(1), m_vorticity(0.0), m_pressureAccel(0.0), m_dt(dt), m_size_x(xSize), m_size_y(ySize), m_size_z(zSize)
@@ -46,6 +47,7 @@ FluidSimulation3D::FluidSimulation3D(int32 xSize, int32 ySize, int32 zSize, floa
 // Update is called every frame or as specified in the max desired updates per second GUI slider
 void FluidSimulation3D::Update() const
 {
+    SCOPE_CYCLE_COUNTER(STAT_AtmosUpdatesCount);
     UpdateDiffusion();
     UpdateForces();
     UpdateAdvection();
