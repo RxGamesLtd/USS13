@@ -3,8 +3,6 @@
 #include "SS13Remake.h"
 #include "WorldGrid.h"
 
-DEFINE_STAT(STAT_AtmosRequestsCount);
-
 // Sets default values
 AWorldGrid::AWorldGrid()
 {
@@ -38,14 +36,18 @@ FAtmoStruct AWorldGrid::GetAtmoStatusByIndex(int32 x, int32 y, int32 z) const
 
 FAtmoStruct AWorldGrid::GetAtmoStatusByLocation(FVector location) const
 {
-	SCOPE_CYCLE_COUNTER(STAT_AtmosRequestsCount);
-	auto halfSize = Size * CellExtent / 2;
-	auto worldCellSize = CellExtent * 2;
+	auto halfSize = Size * CellExtent / 2.0 + CellExtent;
+	halfSize.Z += CellExtent.Z;
+	auto worldCellSize = CellExtent * 2.0;
 	auto index = (location - this->GetActorLocation() + halfSize) / worldCellSize;
 
 	auto x = FMath::FloorToInt(index.X);
 	auto y = FMath::FloorToInt(index.Y);
 	auto z = FMath::FloorToInt(index.Z);
 
-	return GetAtmoStatusByIndex(x, y, z);
+	auto ret =  GetAtmoStatusByIndex(x, y, z);
+
+	//ret.CO2 = x;
+	//ret.N2 = y;
+	return ret;
 }

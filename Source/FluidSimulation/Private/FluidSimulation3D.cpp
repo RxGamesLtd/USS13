@@ -75,10 +75,10 @@ void FluidSimulation3D::UpdateDiffusion() const
 		{
 			for (int32 i = 0; i < m_diffusionIter; i++)
 			{
-				Diffusion(mp_pressure->SourceO2(), mp_pressure->DestinationO2(), mp_pressure->Properties()->diffusion / static_cast<float>(m_diffusionIter));
-				Diffusion(mp_pressure->SourceCO2(), mp_pressure->DestinationCO2(), mp_pressure->Properties()->diffusion / static_cast<float>(m_diffusionIter));
-				Diffusion(mp_pressure->SourceN2(), mp_pressure->DestinationN2(), mp_pressure->Properties()->diffusion / static_cast<float>(m_diffusionIter));
-				Diffusion(mp_pressure->SourceToxin(), mp_pressure->DestinationToxin(), mp_pressure->Properties()->diffusion / static_cast<float>(m_diffusionIter));
+				DiffusionStable(mp_pressure->SourceO2(), mp_pressure->DestinationO2(), mp_pressure->Properties()->diffusion / static_cast<float>(m_diffusionIter));
+				DiffusionStable(mp_pressure->SourceCO2(), mp_pressure->DestinationCO2(), mp_pressure->Properties()->diffusion / static_cast<float>(m_diffusionIter));
+				DiffusionStable(mp_pressure->SourceN2(), mp_pressure->DestinationN2(), mp_pressure->Properties()->diffusion / static_cast<float>(m_diffusionIter));
+				DiffusionStable(mp_pressure->SourceToxin(), mp_pressure->DestinationToxin(), mp_pressure->Properties()->diffusion / static_cast<float>(m_diffusionIter));
 				mp_pressure->SwapLocations();
 			}
 		}

@@ -31,10 +31,9 @@ bool FFluidSimulationManager::Init()
 {
 	sim = MakeShareable(new FluidSimulation3D(Size.X, Size.Y, Size.Z, 0.1f));
 	sim->Pressure()->SourceO2()->Set<FFluidSimulationManager>(this, &FFluidSimulationManager::InitDistribution);
-	//sim->Pressure()->DestinationO2()->Set<FFluidSimulationManager>(this, &FFluidSimulationManager::InitDistribution);
-
+	
 	sim->DiffusionIterations(10);
-	sim->PressureAccel(2.0f);
+	sim->PressureAccel(1.0f);
 	sim->Vorticity(0.03f);
 	sim->m_bBoundaryCondition = false;
 
@@ -46,19 +45,21 @@ bool FFluidSimulationManager::Init()
 	sim->Velocity()->Properties()->advection = 1.0f;
 
 	StopTaskCounter.Reset();
+	UE_LOG(LogFluidSimulation, Log, TEXT("Atmo thread initialized"));
 	return true;
 }
 
 void FFluidSimulationManager::InitDistribution(float& arr, int32 i, int32 j, int32 k, int64 index) const
 {
 	//TODO: load from save file
-	arr = FMath::RandRange(100, 150);
+	arr = FMath::RandRange(10.0f, 2000.0f);
 }
 
 uint32 FFluidSimulationManager::Run()
 {
 	//Initial wait before starting
 	FPlatformProcess::Sleep(0.03);
+	UE_LOG(LogFluidSimulation, Log, TEXT("Atmo thread started"));
 
 	//While not told to stop this thread 
 	//		and not yet finished finding Prime Numbers

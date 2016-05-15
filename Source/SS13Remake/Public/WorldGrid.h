@@ -7,9 +7,6 @@
 #include "AtmoStruct.h"
 #include "WorldGrid.generated.h"
 
-DECLARE_STATS_GROUP(TEXT("Atmospherics"), STATGROUP_SS13Stats, STATCAT_Advanced);
-DECLARE_CYCLE_STAT_EXTERN(TEXT("AtmosRequestsCount"), STAT_AtmosRequestsCount, STATGROUP_SS13Stats, SS13REMAKE_API);
-
 UCLASS()
 class SS13REMAKE_API AWorldGrid : public AActor
 {
