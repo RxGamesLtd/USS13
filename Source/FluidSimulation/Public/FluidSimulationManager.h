@@ -1,6 +1,7 @@
 #pragma once
 
 #include "FluidSimulation3D.h"
+#include "AtmoStruct.h"
 #include "ThreadingBase.h"
 #include "Object.h"
 #include "Platform.h"
@@ -28,7 +29,9 @@ public:
 
     virtual void Stop() override;
 
-    float GetValue(int32 x, int32 y, int32 z) const;
+	FAtmoStruct GetValue(int32 x, int32 y, int32 z) const;
+
+    FVector GetVelocity(int32 x, int32 y, int32 z) const;
 
 private:
     /** SimulationObject */

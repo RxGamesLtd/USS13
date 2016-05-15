@@ -35,3 +35,6 @@ Saved/
 *.sdf
 Build/
 *.sln
+.vs/
+*.db
+*.opendb

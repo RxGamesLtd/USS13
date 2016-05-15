@@ -35,6 +35,7 @@ AFogOfWarManager::~AFogOfWarManager() {
 
 void AFogOfWarManager::BeginPlay() {
     Super::BeginPlay();
+	FowActors.Reset();
     bIsDoneBlending = true;
     StartFOWTextureUpdate();
 }
@@ -71,7 +72,7 @@ void AFogOfWarManager::OnFowTextureUpdated_Implementation(UTexture2D* currentTex
 }
 
 void AFogOfWarManager::RegisterFowActor(AActor* Actor) {
-    FowActors.Add(Actor);
+    FowActors.AddUnique(Actor);
 }
 
 bool AFogOfWarManager::GetIsBlurEnabled() {

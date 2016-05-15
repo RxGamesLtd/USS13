@@ -21,5 +21,6 @@ public class SS13RemakeTarget : TargetRules
 		)
 	{
 		OutExtraModuleNames.Add("SS13Remake");
+        OutExtraModuleNames.Add("FluidSimulation");
     }
 }

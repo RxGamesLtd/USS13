@@ -25,7 +25,7 @@
 #include "Public/FluidSimulation.h"
 #include "FluidPkg3D.h"
 
-FluidPkg3D::FluidPkg3D(int x, int y, int z) : m_X(x), m_Y(y), m_Z(z)
+FluidPkg3D::FluidPkg3D(int32 x, int32 y, int32 z) : m_X(x), m_Y(y), m_Z(z)
 {
     mp_prop = MakeShareable(new FluidProperties());
     mp_prop->diffusion = 0.0f;

@@ -2,9 +2,11 @@
 
 #pragma once
 
+#include "RHI.h"
 #include "GameFramework/Actor.h"
 #include "FogOfWarWorker.h"
 #include "FogOfWarManager.generated.h"
+
 
 UCLASS()
 class SS13REMAKE_API AFogOfWarManager : public AActor
@@ -83,7 +85,7 @@ public:
     TArray<float> blurKernel;
 
     //Store the actors that will be unveiling the FOW-texture.
-    UPROPERTY()
+    UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
     TArray<AActor*> FowActors;
 
     //DEBUG: Time it took to update the fow texture

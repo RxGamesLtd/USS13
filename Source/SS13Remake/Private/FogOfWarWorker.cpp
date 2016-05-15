@@ -30,7 +30,7 @@ bool FogOfWarWorker::Init() {
 uint32 FogOfWarWorker::Run() {
     FPlatformProcess::Sleep(0.03f);
     while (StopTaskCounter.GetValue() == 0) {
-        float time;
+        float time = 0.0f;
         if (Manager && Manager->GetWorld()) {
             time = Manager->GetWorld()->TimeSeconds;
         }
@@ -53,10 +53,13 @@ void FogOfWarWorker::UpdateFowTexture() {
     TSet<FVector2D> texelsToBlur;
     int sightTexels = Manager->SightRange * Manager->SamplesPerMeter;
     float dividend = 100.0f / Manager->SamplesPerMeter;
+	const FName TraceTag(TEXT("FOW trace"));
+
+	Manager->GetWorld()->DebugDrawTraceTag = TraceTag;
 
     for (auto Itr(Manager->FowActors.CreateIterator()); Itr; Itr++) {
         //Find actor position
-        if (!*Itr) return;
+        if (!(*Itr)->IsValidLowLevel()) continue;
         FVector position = (*Itr)->GetActorLocation();
 
         //We divide by 100.0 because 1 texel equals 1 meter of visibility-data.
@@ -101,7 +104,7 @@ void FogOfWarWorker::UpdateFowTexture() {
                         //for every ray we would unveil all the points between the collision and origo using Bresenham's Line-drawing algorithm.
                         //However, the tracing doesn't seem like it takes much time at all (~0.02ms with four actors tracing circles of 18 texels each),
                         //it's the blurring that chews CPU..
-                        if (!Manager->GetWorld()->LineTraceTest(position, currentWorldSpacePos, ECC_WorldStatic, queryParams)) {
+                        if (!Manager->GetWorld()->LineTraceTestByChannel(position, currentWorldSpacePos, ECC_WorldDynamic, queryParams)) {
                             //Unveil the positions we are currently seeing
                             Manager->UnfoggedData[x + y * Manager->TextureSize] = true;
                             //Store the positions we are currently seeing.
@@ -168,6 +171,7 @@ void FogOfWarWorker::UpdateFowTexture() {
             }
         }
     }
+
     Manager->bHasFOWTextureUpdate = true;
 }
 

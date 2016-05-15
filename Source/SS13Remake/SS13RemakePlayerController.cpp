@@ -63,11 +63,11 @@ void ASS13RemakePlayerController::MoveToTouchLocation(const ETouchIndex::Type Fi
 
 void ASS13RemakePlayerController::SetNewMoveDestination(const FVector DestLocation)
 {
-	APawn* const Pawn = GetPawn();
-	if (Pawn)
+	APawn* const controlledPawn = GetPawn();
+	if (controlledPawn)
 	{
 		UNavigationSystem* const NavSys = GetWorld()->GetNavigationSystem();
-		float const Distance = FVector::Dist(DestLocation, Pawn->GetActorLocation());
+		float const Distance = FVector::Dist(DestLocation, controlledPawn->GetActorLocation());
 
 		// We need to issue move command only if far enough in order for walk animation to play correctly
 		if (NavSys && (Distance > 220.0f))
@@ -76,7 +76,7 @@ void ASS13RemakePlayerController::SetNewMoveDestination(const FVector DestLocati
 		}
         else
         {
-            auto rot = (DestLocation - Pawn->GetActorLocation()).Rotation();
+            auto rot = (DestLocation - controlledPawn->GetActorLocation()).Rotation();
             rot.Pitch = 0.0f;
             SetControlRotation(rot);
         }

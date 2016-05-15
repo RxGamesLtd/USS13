@@ -25,6 +25,7 @@
 #pragma once
 
 #include "FluidPkg3D.h"
+#include "AtmoPkg3D.h"
 #include "VelPkg3D.h"
 #include <Runtime/Core/Public/Templates/SharedPointerInternals.h>
 #include "FluidSimulation3D.h"
@@ -58,7 +59,7 @@ public:
 
 	// Fluid object accessors
     TSharedPtr<VelPkg3D, ESPMode::ThreadSafe> Velocity() const;
-    TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> Pressure() const;
+    TSharedPtr<AtmoPkg3D, ESPMode::ThreadSafe> Pressure() const;
     TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> Ink() const;
     TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> Heat() const;
 
@@ -82,10 +83,7 @@ protected:
 	// Fluid objects
 	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> m_curl;
     TSharedPtr<VelPkg3D, ESPMode::ThreadSafe> mp_velocity;
-    TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> mp_pressure_O2;  // equivalent to density O2
-    TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> mp_pressure_C02;  // equivalent to density
-    TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> mp_pressure_Toxin;  // equivalent to density
-    TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> mp_pressure_N2;  // equivalent to density
+    TSharedPtr<AtmoPkg3D, ESPMode::ThreadSafe> mp_pressure;  // equivalent to density
     TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> mp_ink;       // ink is one fluid suspended in another, like smoke in air
     TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> mp_heat;
 	

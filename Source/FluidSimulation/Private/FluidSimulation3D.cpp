@@ -33,10 +33,7 @@ FluidSimulation3D::FluidSimulation3D(int32 xSize, int32 ySize, int32 zSize, floa
 {
     m_curl          = MakeShareable(new Fluid3D(xSize, ySize, zSize));
     mp_velocity     = MakeShareable(new VelPkg3D(xSize, ySize, zSize));
-    mp_pressure_O2  = MakeShareable(new FluidPkg3D(xSize, ySize, zSize));
-    mp_pressure_C02 = MakeShareable(new FluidPkg3D(xSize, ySize, zSize));
-    mp_pressure_Toxin  = MakeShareable(new FluidPkg3D(xSize, ySize, zSize));
-    mp_pressure_N2  = MakeShareable(new FluidPkg3D(xSize, ySize, zSize));
+    mp_pressure		= MakeShareable(new AtmoPkg3D(xSize, ySize, zSize));
     mp_ink          = MakeShareable(new FluidPkg3D(xSize, ySize, zSize));
     mp_heat         = MakeShareable(new FluidPkg3D(xSize, ySize, zSize));
     m_solids        = MakeShareable(new std::vector<bool>(xSize*ySize*zSize));
@@ -64,50 +61,38 @@ void FluidSimulation3D::UpdateDiffusion() const
         // Diffusion of Velocity
         for (int32 i = 0; i < m_diffusionIter; i++)
         {
-            DiffusionStable(mp_velocity->SourceX(), mp_velocity->DestinationX(), scaledDiffusion);
+			Diffusion(mp_velocity->SourceX(), mp_velocity->DestinationX(), scaledDiffusion);
             mp_velocity->SwapLocationsX();
-            DiffusionStable(mp_velocity->SourceY(), mp_velocity->DestinationY(), scaledDiffusion);
+			Diffusion(mp_velocity->SourceY(), mp_velocity->DestinationY(), scaledDiffusion);
             mp_velocity->SwapLocationsY();
-            DiffusionStable(mp_velocity->SourceZ(), mp_velocity->DestinationZ(), scaledDiffusion);
+			Diffusion(mp_velocity->SourceZ(), mp_velocity->DestinationZ(), scaledDiffusion);
             mp_velocity->SwapLocationsZ();
         }
 
-        // Diffusion of Pressure O2
-        for (int32 i = 0; i < m_diffusionIter; i++)
-        {
-            DiffusionStable(mp_pressure_O2->Source(), mp_pressure_O2->Destination(), mp_pressure_O2->Properties()->diffusion / static_cast<float>(m_diffusionIter));
-            mp_pressure_O2->SwapLocations();
-        }
-        // Diffusion of Pressure CO2
-        for (int32 i = 0; i < m_diffusionIter; i++)
-        {
-            DiffusionStable(mp_pressure_C02->Source(), mp_pressure_C02->Destination(), mp_pressure_C02->Properties()->diffusion / static_cast<float>(m_diffusionIter));
-            mp_pressure_C02->SwapLocations();
-        }
-        // Diffusion of Pressure H2
-        for (int32 i = 0; i < m_diffusionIter; i++)
-        {
-            DiffusionStable(mp_pressure_Toxin->Source(), mp_pressure_Toxin->Destination(), mp_pressure_Toxin->Properties()->diffusion / static_cast<float>(m_diffusionIter));
-            mp_pressure_Toxin->SwapLocations();
-        }
-        // Diffusion of Pressure N2
-        for (int32 i = 0; i < m_diffusionIter; i++)
-        {
-            DiffusionStable(mp_pressure_N2->Source(), mp_pressure_N2->Destination(), mp_pressure_N2->Properties()->diffusion / static_cast<float>(m_diffusionIter));
-            mp_pressure_N2->SwapLocations();
-        }
+		// Diffusion of Pressure
+		if (!FMath::IsNearlyZero(mp_pressure->Properties()->diffusion))
+		{
+			for (int32 i = 0; i < m_diffusionIter; i++)
+			{
+				Diffusion(mp_pressure->SourceO2(), mp_pressure->DestinationO2(), mp_pressure->Properties()->diffusion / static_cast<float>(m_diffusionIter));
+				Diffusion(mp_pressure->SourceCO2(), mp_pressure->DestinationCO2(), mp_pressure->Properties()->diffusion / static_cast<float>(m_diffusionIter));
+				Diffusion(mp_pressure->SourceN2(), mp_pressure->DestinationN2(), mp_pressure->Properties()->diffusion / static_cast<float>(m_diffusionIter));
+				Diffusion(mp_pressure->SourceToxin(), mp_pressure->DestinationToxin(), mp_pressure->Properties()->diffusion / static_cast<float>(m_diffusionIter));
+				mp_pressure->SwapLocations();
+			}
+		}
 
         // Diffusion of Heat
         for (int32 i = 0; i < m_diffusionIter; i++)
         {
-            DiffusionStable(mp_heat->Source(), mp_heat->Destination(), mp_heat->Properties()->diffusion / static_cast<float>(m_diffusionIter));
+			Diffusion(mp_heat->Source(), mp_heat->Destination(), mp_heat->Properties()->diffusion / static_cast<float>(m_diffusionIter));
             mp_heat->SwapLocations();
         }
 
         // Diffusion of Ink
         for (int32 i = 0; i < m_diffusionIter; i++)
         {
-            DiffusionStable(mp_ink->Source(), mp_ink->Destination(), mp_ink->Properties()->diffusion / static_cast<float>(m_diffusionIter));
+			Diffusion(mp_ink->Source(), mp_ink->Destination(), mp_ink->Properties()->diffusion / static_cast<float>(m_diffusionIter));
             mp_ink->SwapLocations();
         }
     }
@@ -238,29 +223,17 @@ void FluidSimulation3D::UpdateAdvection() const
     // Take care of boundries
     InvertVelocityEdges();
 
-    // Advect Pressure. Represents compressible fluid (e.g. O2)
-    ForwardAdvection(mp_pressure_O2->Source(), mp_pressure_O2->Destination(), mp_pressure_O2->Properties()->advection * advection_scale);
-    mp_pressure_O2->SwapLocations();
-    ReverseAdvection(mp_pressure_O2->Source(), mp_pressure_O2->Destination(), mp_pressure_O2->Properties()->advection * advection_scale);
-    mp_pressure_O2->SwapLocations();
-
-    // Advect Pressure. Represents compressible fluid (e.g. N2)
-    ForwardAdvection(mp_pressure_N2->Source(), mp_pressure_N2->Destination(), mp_pressure_N2->Properties()->advection * advection_scale);
-    mp_pressure_N2->SwapLocations();
-    ReverseAdvection(mp_pressure_N2->Source(), mp_pressure_N2->Destination(), mp_pressure_N2->Properties()->advection * advection_scale);
-    mp_pressure_N2->SwapLocations();
-
-    // Advect Pressure. Represents compressible fluid (e.g. CO2)
-    ForwardAdvection(mp_pressure_C02->Source(), mp_pressure_C02->Destination(), mp_pressure_C02->Properties()->advection * advection_scale);
-    mp_pressure_C02->SwapLocations();
-    ReverseAdvection(mp_pressure_C02->Source(), mp_pressure_C02->Destination(), mp_pressure_C02->Properties()->advection * advection_scale);
-    mp_pressure_C02->SwapLocations();
-
-    // Advect Pressure. Represents compressible fluid (e.g. Toxins)
-    ForwardAdvection(mp_pressure_Toxin->Source(), mp_pressure_Toxin->Destination(), mp_pressure_Toxin->Properties()->advection * advection_scale);
-    mp_pressure_Toxin->SwapLocations();
-    ReverseAdvection(mp_pressure_Toxin->Source(), mp_pressure_Toxin->Destination(), mp_pressure_Toxin->Properties()->advection * advection_scale);
-    mp_pressure_Toxin->SwapLocations();
+    // Advect Pressure. Represents compressible fluid
+    ForwardAdvection(mp_pressure->SourceO2(), mp_pressure->DestinationO2(), mp_pressure->Properties()->advection * advection_scale);
+	ForwardAdvection(mp_pressure->SourceN2(), mp_pressure->DestinationN2(), mp_pressure->Properties()->advection * advection_scale);
+	ForwardAdvection(mp_pressure->SourceCO2(), mp_pressure->DestinationCO2(), mp_pressure->Properties()->advection * advection_scale);
+	ForwardAdvection(mp_pressure->SourceToxin(), mp_pressure->DestinationToxin(), mp_pressure->Properties()->advection * advection_scale);
+	mp_pressure->SwapLocations();
+    ReverseAdvection(mp_pressure->SourceO2(), mp_pressure->DestinationO2(), mp_pressure->Properties()->advection * advection_scale);
+	ReverseAdvection(mp_pressure->SourceN2(), mp_pressure->DestinationN2(), mp_pressure->Properties()->advection * advection_scale);
+	ReverseAdvection(mp_pressure->SourceCO2(), mp_pressure->DestinationCO2(), mp_pressure->Properties()->advection * advection_scale);
+	ReverseAdvection(mp_pressure->SourceToxin(), mp_pressure->DestinationToxin(), mp_pressure->Properties()->advection * advection_scale);
+    mp_pressure->SwapLocations();
 }
 
 void FluidSimulation3D::ForwardAdvection(TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_in, TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_out, float scale) const
@@ -815,6 +788,7 @@ void FluidSimulation3D::DiffusionStable(TSharedPtr<Fluid3D, ESPMode::ThreadSafe>
             }
         }
     }
+	
     //set boundary
     // Iterate through cells along the left and right surfaces
     for (int32 x = 0; x < m_size_x; x++)
@@ -854,7 +828,6 @@ void FluidSimulation3D::ReverseSignedAdvection(TSharedPtr<VelPkg3D, ESPMode::Thr
     // negate advection scale, since it's reverse advection
     auto force = - m_dt * scale;
     float vx, vy, vz; // velocity values of the current x,y,z locations
-    float x1, y1, z1; // x, y, z locations after advection
     int32 x1A, y1A, z1A; // x, y, z locations of top-left-back grid point (A) after advection
     float fx1, fy1, fz1; // fractional remainders of x1, y1, z1
     float A_X, A_Y, A_Z, // top-left-back grid point value after advection
@@ -865,8 +838,7 @@ void FluidSimulation3D::ReverseSignedAdvection(TSharedPtr<VelPkg3D, ESPMode::Thr
           F_X, F_Y, F_Z, // top-right-front grid point value after advection
           G_X, G_Y, G_Z, // bottom-left-front grid point value after advection
           H_X, H_Y, H_Z; // bottom-right-front grid point value after advection
-    bool bCollide;
-
+    
     if (EqualToZero(scale))
     {
         return;
@@ -888,11 +860,12 @@ void FluidSimulation3D::ReverseSignedAdvection(TSharedPtr<VelPkg3D, ESPMode::Thr
                 if (!EqualToZero(vx) || !EqualToZero(vy) || !EqualToZero(vz))
                 {
                     // Find the floating point location of the advection
-                    x1 = x + vx * force;
-                    y1 = y + vy * force;
-                    z1 = z + vz * force;
+					// x, y, z locations after advection
+					float x1 = x + vx * force;
+					float y1 = y + vy * force;
+					float z1 = z + vz * force;
 
-                    bCollide = Collide(x, y, z, x1, y1, z1);
+                    bool bCollide = Collide(x, y, z, x1, y1, z1);
 
                     // Find the nearest top-left integer grid point of the advection 
                     x1A = FMath::FloorToInt(x1);
@@ -994,7 +967,7 @@ void FluidSimulation3D::ReverseSignedAdvection(TSharedPtr<VelPkg3D, ESPMode::Thr
 // Checks if destination point during advection is out of bounds and pulls point in if needed
 bool FluidSimulation3D::Collide(int32 this_x, int32 this_y, int32 this_z, float &new_x, float &new_y, float &new_z) const
 {
-    const int32 max_advect = 1 - KINDA_SMALL_NUMBER;
+    const float max_advect = 1 - KINDA_SMALL_NUMBER;
     auto bCollide = false;
 
     // Clamp step to 2 cells (one for wall)
@@ -1067,40 +1040,40 @@ void FluidSimulation3D::PressureAcceleration(const float scale) const
             for (int32 z = 0; z < m_size_z - 1; z++)
             {
                 // Pressure differential between points to get an accelleration force.
-                float src_press = mp_pressure_O2->Source()->element(x, y, z) +
-                    mp_pressure_N2->Source()->element(x, y, z) +
-                    mp_pressure_C02->Source()->element(x, y, z) +
-                    mp_pressure_Toxin->Source()->element(x, y, z);
+                float src_press = mp_pressure->SourceO2()->element(x, y, z) +
+                    mp_pressure->SourceN2()->element(x, y, z) +
+                    mp_pressure->SourceCO2()->element(x, y, z) +
+                    mp_pressure->SourceToxin()->element(x, y, z);
                 //if (!EqualToZero(src_press))
                 //    src_press = mp_pressure_O2->Source()->element(x, y, z) / src_press + 
                 //                mp_pressure_N2->Source()->element(x, y, z) / src_press +
                 //                mp_pressure_C02->Source()->element(x, y, z) / src_press +
                 //                mp_pressure_Toxin->Source()->element(x, y, z) / src_press;
 
-                float dest_x = mp_pressure_O2->Source()->element(x + 1, y, z) +
-                    mp_pressure_N2->Source()->element(x + 1, y, z) +
-                    mp_pressure_C02->Source()->element(x + 1, y, z) +
-                    mp_pressure_Toxin->Source()->element(x + 1, y, z);
+                float dest_x = mp_pressure->SourceO2()->element(x + 1, y, z) +
+                    mp_pressure->SourceN2()->element(x + 1, y, z) +
+                    mp_pressure->SourceCO2()->element(x + 1, y, z) +
+                    mp_pressure->SourceToxin()->element(x + 1, y, z);
                 //if (!EqualToZero(dest_x))
                 //    dest_x = mp_pressure_O2->Source()->element(x + 1, y, z) / dest_x +
                 //            mp_pressure_N2->Source()->element(x + 1, y, z) / dest_x +
                 //            mp_pressure_C02->Source()->element(x + 1, y, z) / dest_x +
                 //            mp_pressure_Toxin->Source()->element(x + 1, y, z) / dest_x;
 
-                float dest_y = mp_pressure_O2->Source()->element(x, y + 1, z) +
-                    mp_pressure_N2->Source()->element(x, y + 1, z) +
-                    mp_pressure_C02->Source()->element(x, y + 1, z) +
-                    mp_pressure_Toxin->Source()->element(x, y + 1, z);
+                float dest_y = mp_pressure->SourceO2()->element(x, y + 1, z) +
+                    mp_pressure->SourceN2()->element(x, y + 1, z) +
+                    mp_pressure->SourceCO2()->element(x, y + 1, z) +
+                    mp_pressure->SourceToxin()->element(x, y + 1, z);
                 //if (!EqualToZero(dest_y))
                 //    dest_y = mp_pressure_O2->Source()->element(x, y + 1, z) / dest_y +
                 //             mp_pressure_N2->Source()->element(x, y + 1, z) / dest_y +
                 //             mp_pressure_C02->Source()->element(x, y + 1, z) / dest_y +
                 //             mp_pressure_Toxin->Source()->element(x, y + 1, z) / dest_y;
 
-                float dest_z = mp_pressure_O2->Source()->element(x, y, z + 1) +
-                    mp_pressure_N2->Source()->element(x, y, z + 1) +
-                    mp_pressure_C02->Source()->element(x, y, z + 1) +
-                    mp_pressure_Toxin->Source()->element(x, y, z + 1);
+                float dest_z = mp_pressure->SourceO2()->element(x, y, z + 1) +
+                    mp_pressure->SourceN2()->element(x, y, z + 1) +
+                    mp_pressure->SourceCO2()->element(x, y, z + 1) +
+                    mp_pressure->SourceToxin()->element(x, y, z + 1);
                 //if (!EqualToZero(dest_z))
                 //    dest_z = mp_pressure_O2->Source()->element(x, y, z + 1) / dest_z +
                 //             mp_pressure_N2->Source()->element(x, y, z + 1) / dest_z +
@@ -1281,10 +1254,7 @@ bool FluidSimulation3D::EqualToZero(float in) const
 // Reset the simulation's grids to defaults, does not affect individual parameters
 void FluidSimulation3D::Reset() const
 {
-    mp_pressure_O2->Reset(1.0f);
-    mp_pressure_N2->Reset(1.0f);
-    mp_pressure_C02->Reset(1.0f);
-    mp_pressure_Toxin->Reset(1.0f);
+    mp_pressure->Reset(1.0f);
     mp_velocity->Reset(0.0f);
     mp_ink->Reset(0.0f);
     mp_heat->Reset(0.0f);
@@ -1331,9 +1301,9 @@ void FluidSimulation3D::dt(float value)
     m_dt = value;
 }
 
-TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> FluidSimulation3D::Pressure() const
+TSharedPtr<AtmoPkg3D, ESPMode::ThreadSafe> FluidSimulation3D::Pressure() const
 {
-    return mp_pressure_O2;
+    return mp_pressure;
 }
 
 TSharedPtr<VelPkg3D, ESPMode::ThreadSafe> FluidSimulation3D::Velocity() const
@@ -1353,7 +1323,7 @@ TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> FluidSimulation3D::Heat() const
 
 int32 FluidSimulation3D::Height() const
 {
-    return m_size_y;
+    return m_size_z;
 }
 
 int32 FluidSimulation3D::Width() const
@@ -1363,6 +1333,6 @@ int32 FluidSimulation3D::Width() const
 
 int32 FluidSimulation3D::Depth() const
 {
-    return m_size_z;
+    return m_size_y;
 }
 

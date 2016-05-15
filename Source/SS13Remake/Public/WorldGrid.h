@@ -4,6 +4,7 @@
 
 #include "Private/GridUtils.h"
 #include "FluidSimulationManager.h"
+#include "AtmoStruct.h"
 #include "WorldGrid.generated.h"
 
 DECLARE_STATS_GROUP(TEXT("Atmospherics"), STATGROUP_SS13Stats, STATCAT_Advanced);
@@ -33,13 +34,13 @@ public:
     UPROPERTY(Category = "Grid", BlueprintReadWrite, EditAnywhere)
     FVector CellExtent;
 
-    float GetAtmoStatusByIndex(int32 x, int32 y, int32 z) const;
 
     UFUNCTION(Category = "Grid", BlueprintCallable)
-    float GetAtmoStatusByLocation(FVector location) const;
+	FAtmoStruct GetAtmoStatusByLocation(FVector location) const;
 
 protected:
 
+	FAtmoStruct GetAtmoStatusByIndex(int32 x, int32 y, int32 z) const;
     TSharedPtr<FFluidSimulationManager> AtmosManager;
 };
 

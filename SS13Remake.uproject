@@ -1,9 +1,17 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "{86325E1E-460D-4F26-865D-45B194154E2A}",
+	"EngineAssociation": "{4C7B3CD1-49A0-0062-8B6B-B9B911A9B1D8}",
 	"Category": "",
 	"Description": "",
 	"Modules": [
+		{
+			"Name": "FluidSimulation",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine"
+			]
+		},
 		{
 			"Name": "SS13Remake",
 			"Type": "Runtime",
@@ -30,5 +38,9 @@
 			"Name": "UObjectPlugin",
 			"Enabled": false
 		}
+	],
+	"TargetPlatforms": [
+		"LinuxNoEditor",
+		"WindowsNoEditor"
 	]
 }

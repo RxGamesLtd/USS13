@@ -28,15 +28,15 @@ void AWorldGrid::Tick( float DeltaTime )
 
 }
 
-float AWorldGrid::GetAtmoStatusByIndex(int32 x, int32 y, int32 z) const
+FAtmoStruct AWorldGrid::GetAtmoStatusByIndex(int32 x, int32 y, int32 z) const
 {
     if (!AtmosManager->IsStarted())
-        return 0.0f;
+        return FAtmoStruct();
 
     return AtmosManager->GetValue(x, y, z);
 }
 
-float AWorldGrid::GetAtmoStatusByLocation(FVector location) const
+FAtmoStruct AWorldGrid::GetAtmoStatusByLocation(FVector location) const
 {
     SCOPE_CYCLE_COUNTER(STAT_AtmosRequestsCount);
     auto halfSize = Size * CellExtent / 2;

@@ -5,7 +5,7 @@
 FFluidSimulationManager::FFluidSimulationManager()
 {
     StopTaskCounter.Increment();
-    Size = FIntVector(100, 100, 3);
+    Size = FIntVector(1, 1, 1);
 }
 
 FFluidSimulationManager::~FFluidSimulationManager()
@@ -30,19 +30,20 @@ void FFluidSimulationManager::Start()
 bool FFluidSimulationManager::Init()
 {
     sim = MakeShareable(new FluidSimulation3D(Size.X, Size.Y, Size.Z, 0.1f));
-    sim->Pressure()->Source()->Set<FFluidSimulationManager>(this, &FFluidSimulationManager::InitDistribution);
+    sim->Pressure()->SourceO2()->Set<FFluidSimulationManager>(this, &FFluidSimulationManager::InitDistribution);
+	sim->Pressure()->DestinationO2()->Set<FFluidSimulationManager>(this, &FFluidSimulationManager::InitDistribution);
     
-    sim->DiffusionIterations(20);
+    sim->DiffusionIterations(10);
     sim->PressureAccel(2.0f);
     sim->Vorticity(0.03f);
-    sim->m_bBoundaryCondition = true;
+    sim->m_bBoundaryCondition = false;
      
-    sim->Pressure()->Properties()->diffusion = 6.0f;
-    sim->Pressure()->Properties()->advection = 150.0f;
+    sim->Pressure()->Properties()->diffusion = 1.0f;
+    sim->Pressure()->Properties()->advection = 1.0f;
 
     sim->Velocity()->Properties()->diffusion = 1.0f;
-    sim->Velocity()->Properties()->decay = 0.0f;
-    sim->Velocity()->Properties()->advection = 150.0f;
+    sim->Velocity()->Properties()->decay = 0.5f;
+    sim->Velocity()->Properties()->advection = 1.0f;
     
     StopTaskCounter.Reset();
     return true;
@@ -52,9 +53,9 @@ bool FFluidSimulationManager::Init()
 void FFluidSimulationManager::InitDistribution(float& arr, int32 i, int32 j, int32 k, int64 index) const
 {
     //TODO: load from save file
+	//arr = (i * j * k) * 3;
     if(index == sim->Height() * sim->Width() * sim->Depth() / 2)
         arr = 30000;
-    arr = (i * j * k)*3;
 }
 
 uint32 FFluidSimulationManager::Run()
@@ -72,7 +73,7 @@ uint32 FFluidSimulationManager::Run()
 
         //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         //prevent thread from using too many resources
-        FPlatformProcess::Sleep(1);
+        FPlatformProcess::Sleep(0.1f);
         //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     }
     UE_LOG(LogFluidSimulation, Log, TEXT("Atmo thread is exited"));
@@ -88,31 +89,52 @@ void FFluidSimulationManager::Stop()
     Thread->WaitForCompletion();
 }
 
-float FFluidSimulationManager::GetValue(int32 x, int32 y, int32 z) const
+FAtmoStruct FFluidSimulationManager::GetValue(int32 x, int32 y, int32 z) const
+{
+    auto cells = (Size - FIntVector(1)) / 2;
+    
+    if (x < 0 || x >= cells.X)
+        return FAtmoStruct();
+    if (y < 0 || y >= cells.Y)
+        return FAtmoStruct();
+    if (z < 0 || z >= cells.Z)
+        return FAtmoStruct();
+    
+	// TODO
+	auto source = sim->Pressure()->SourceO2();
+
+	FAtmoStruct atmo;
+	
+	//0 - wall, 1 - cell, 2- wall, ...
+	auto x1 = x * 2 + 1;
+	auto y1 = y * 2 + 1;
+	auto z1 = z * 2 + 1;
+
+ 	atmo.O2 = sim->Pressure()->SourceO2()->element(x1, y1, z1);
+	atmo.O2 = sim->Pressure()->SourceN2()->element(x1, y1, z1);
+	atmo.O2 = sim->Pressure()->SourceCO2()->element(x1, y1, z1);
+	atmo.O2 = sim->Pressure()->SourceToxin()->element(x1, y1, z1);
+
+    
+    return atmo;
+}
+
+FVector FFluidSimulationManager::GetVelocity(int32 x, int32 y, int32 z) const
 {
     auto cells = Size - FIntVector(1);
     cells /= 2;
 
     if (x < 0 || x >= cells.X)
-        return 0.0;
+        return FVector();
     if (y < 0 || y >= cells.Y)
-        return 0.0;
+        return FVector();
     if (z < 0 || z >= cells.Z)
-        return 0.0;
-    auto source = sim->Pressure()->Source();
-    auto val = source->element(x, y, z);
-    
+        return FVector();
+
+    auto sourceX = sim->Velocity()->SourceX()->element(x, y, z);
+    auto sourceY = sim->Velocity()->SourceY()->element(x, y, z);
+    auto sourceZ = sim->Velocity()->SourceZ()->element(x, y, z);
+    auto val = FVector(sourceX, sourceY, sourceZ);
+
     return val;
-
-    //auto neighbor = 0.0f;
-    //if (x > 1) {val += source->element(x - 1, y, z); neighbor++;}
-    //if (x < Size.X - 1) { val += source->element(x + 1, y, z); neighbor++; }
-
-    //if (y>1) {val += source->element(x, y - 1, z); neighbor++;}
-    //if (y<Size.Y - 1) {val += source->element(x, y + 1, z); neighbor++;}
-
-    //if (z>1) {val += source->element(x, y, z - 1); neighbor++;}
-    //if (z<Size.Z - 1) {val += source->element(x, y, z + 1); neighbor++;}
-    
-    //return neighbor > 0 ? val / neighbor : val;
 }
