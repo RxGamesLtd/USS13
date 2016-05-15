@@ -31,7 +31,7 @@ bool FFluidSimulationManager::Init()
 {
     sim = MakeShareable(new FluidSimulation3D(Size.X, Size.Y, Size.Z, 0.1f));
     sim->Pressure()->SourceO2()->Set<FFluidSimulationManager>(this, &FFluidSimulationManager::InitDistribution);
-	sim->Pressure()->DestinationO2()->Set<FFluidSimulationManager>(this, &FFluidSimulationManager::InitDistribution);
+	//sim->Pressure()->DestinationO2()->Set<FFluidSimulationManager>(this, &FFluidSimulationManager::InitDistribution);
     
     sim->DiffusionIterations(10);
     sim->PressureAccel(2.0f);
@@ -49,13 +49,10 @@ bool FFluidSimulationManager::Init()
     return true;
 }
 
-
 void FFluidSimulationManager::InitDistribution(float& arr, int32 i, int32 j, int32 k, int64 index) const
 {
     //TODO: load from save file
-	//arr = (i * j * k) * 3;
-    if(index == sim->Height() * sim->Width() * sim->Depth() / 2)
-        arr = 30000;
+    arr = FMath::RandRange(100, 150);
 }
 
 uint32 FFluidSimulationManager::Run()
@@ -91,31 +88,27 @@ void FFluidSimulationManager::Stop()
 
 FAtmoStruct FFluidSimulationManager::GetValue(int32 x, int32 y, int32 z) const
 {
+	FAtmoStruct atmo;
+
     auto cells = (Size - FIntVector(1)) / 2;
     
     if (x < 0 || x >= cells.X)
-        return FAtmoStruct();
+        return atmo;
     if (y < 0 || y >= cells.Y)
-        return FAtmoStruct();
+        return atmo;
     if (z < 0 || z >= cells.Z)
-        return FAtmoStruct();
+        return atmo;
     
-	// TODO
-	auto source = sim->Pressure()->SourceO2();
-
-	FAtmoStruct atmo;
-	
 	//0 - wall, 1 - cell, 2- wall, ...
 	auto x1 = x * 2 + 1;
 	auto y1 = y * 2 + 1;
 	auto z1 = z * 2 + 1;
 
  	atmo.O2 = sim->Pressure()->SourceO2()->element(x1, y1, z1);
-	atmo.O2 = sim->Pressure()->SourceN2()->element(x1, y1, z1);
-	atmo.O2 = sim->Pressure()->SourceCO2()->element(x1, y1, z1);
-	atmo.O2 = sim->Pressure()->SourceToxin()->element(x1, y1, z1);
+	atmo.N2 = sim->Pressure()->SourceN2()->element(x1, y1, z1);
+	atmo.CO2 = sim->Pressure()->SourceCO2()->element(x1, y1, z1);
+	atmo.Toxin = sim->Pressure()->SourceToxin()->element(x1, y1, z1);
 
-    
     return atmo;
 }
 

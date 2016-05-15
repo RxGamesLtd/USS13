@@ -27,9 +27,7 @@
 #include "FluidPkg3D.h"
 #include "AtmoPkg3D.h"
 #include "VelPkg3D.h"
-#include <Runtime/Core/Public/Templates/SharedPointerInternals.h>
 #include "FluidSimulation3D.h"
-#include <vector>
 
 DECLARE_STATS_GROUP(TEXT("Atmospherics"), STATGROUP_AtmosStats, STATCAT_Advanced);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("AtmosUpdatesCount"), STAT_AtmosUpdatesCount, STATGROUP_AtmosStats, FLUIDSIMULATION_API);
@@ -79,7 +77,7 @@ public:
 
 protected:
     // Solids
-    TSharedPtr<std::vector<bool>, ESPMode::ThreadSafe> m_solids;
+    TSharedPtr<TArray<bool>, ESPMode::ThreadSafe> m_solids;
 	// Fluid objects
 	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> m_curl;
     TSharedPtr<VelPkg3D, ESPMode::ThreadSafe> mp_velocity;

@@ -36,7 +36,8 @@ FluidSimulation3D::FluidSimulation3D(int32 xSize, int32 ySize, int32 zSize, floa
     mp_pressure		= MakeShareable(new AtmoPkg3D(xSize, ySize, zSize));
     mp_ink          = MakeShareable(new FluidPkg3D(xSize, ySize, zSize));
     mp_heat         = MakeShareable(new FluidPkg3D(xSize, ySize, zSize));
-    m_solids        = MakeShareable(new std::vector<bool>(xSize*ySize*zSize));
+    m_solids        = MakeShareable(new TArray<bool>());
+	m_solids->SetNum(xSize*ySize*zSize);
 
     Reset();
 }
@@ -1021,7 +1022,7 @@ bool FluidSimulation3D::IsSolid(int32 this_x, int32 this_y, int32 this_z) const
     {
         //its a cell
     }
-    return m_solids->at(this_x + m_size_x * (this_y + m_size_y * this_z));
+    return m_solids->GetData()[this_x + m_size_x * (this_y + m_size_y * this_z)];
 }
 
 // Apply acceleration due to pressure
@@ -1119,7 +1120,6 @@ void FluidSimulation3D::ExponentialDecay(TSharedPtr<Fluid3D, ESPMode::ThreadSafe
     }
 }
 
-
 // Apply vorticities to the simulation
 void FluidSimulation3D::VorticityConfinement(const float scale) const
 {
@@ -1175,7 +1175,6 @@ void FluidSimulation3D::VorticityConfinement(const float scale) const
     *mp_velocity->SourceZ() += *mp_velocity->DestinationZ() * scale;
 }
 
-
 // Calculate the curl at position (x,y,z) in the fluid grid. Physically this represents the vortex strength at the
 // cell. Computed as follows: w = (del x U) where U is the velocity vector at (i, j).
 float FluidSimulation3D::Curl(const int32 x, const int32 y, const int32 z) const
@@ -1192,7 +1191,6 @@ float FluidSimulation3D::Curl(const int32 x, const int32 y, const int32 z) const
 
     return x_curl - y_curl - z_curl;
 }
-
 
 // Invert velocities that are facing outwards at boundaries
 void FluidSimulation3D::InvertVelocityEdges() const
@@ -1243,13 +1241,11 @@ void FluidSimulation3D::InvertVelocityEdges() const
     }
 }
 
-
 // float zero approximation
 bool FluidSimulation3D::EqualToZero(float in) const
 {
     return FMath::IsNearlyZero(in);
 }
-
 
 // Reset the simulation's grids to defaults, does not affect individual parameters
 void FluidSimulation3D::Reset() const
