@@ -40,6 +40,9 @@ uint32 FogOfWarWorker::Run() {
 		
 		if (!Manager->bHasFOWTextureUpdate) {
 			UpdateFowTexture(Manager->GetWorld()->TimeSince(TimeTillLastTick));
+			if (!Manager->GetWorld()) {
+				return 0;
+			}
 			Manager->fowUpdateTime = Manager->GetWorld()->TimeSince(time);
 		}
 		TimeTillLastTick = Manager->GetWorld()->TimeSeconds;
