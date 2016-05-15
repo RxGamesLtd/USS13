@@ -8,17 +8,18 @@ struct FLUIDSIMULATION_API FAtmoStruct
 {
 	GENERATED_BODY()
 
+public:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
-	float O2;
+		float O2;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
-	float N2;
+		float N2;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
-	float CO2;
+		float CO2;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
-	float Toxin;
+		float Toxin;
 
 	//For GC
 	void Destroy()

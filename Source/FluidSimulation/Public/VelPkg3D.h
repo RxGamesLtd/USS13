@@ -52,21 +52,21 @@ public:
 	void Reset(float v) const;
 
 	// Accessors
-    TSharedPtr<Fluid3D, ESPMode::ThreadSafe> SourceX() const;
-    TSharedPtr<Fluid3D, ESPMode::ThreadSafe> DestinationX() const;
-    TSharedPtr<Fluid3D, ESPMode::ThreadSafe> SourceY() const;
-    TSharedPtr<Fluid3D, ESPMode::ThreadSafe> DestinationY() const;
-    TSharedPtr<Fluid3D, ESPMode::ThreadSafe> SourceZ() const;
-    TSharedPtr<Fluid3D, ESPMode::ThreadSafe> DestinationZ() const;
+	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> SourceX() const;
+	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> DestinationX() const;
+	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> SourceY() const;
+	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> DestinationY() const;
+	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> SourceZ() const;
+	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> DestinationZ() const;
 	TSharedPtr<FluidProperties, ESPMode::ThreadSafe> Properties() const;
 
 private:
-    TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_sourceX;       // source  for velocity in X direction
-    TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_destX;         // destination for velocity in X direction
-    TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_sourceY;       // source for velocity in Y direction
-    TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_destY;         // destination for velocity in Y direction
-    TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_sourceZ;       // source for velocity in Z direction
-    TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_destZ;         // destination for velocity in Z direction
+	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_sourceX;       // source  for velocity in X direction
+	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_destX;         // destination for velocity in X direction
+	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_sourceY;       // source for velocity in Y direction
+	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_destY;         // destination for velocity in Y direction
+	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_sourceZ;       // source for velocity in Z direction
+	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_destZ;         // destination for velocity in Z direction
 	TSharedPtr<FluidProperties, ESPMode::ThreadSafe> mp_prop;
 	int32 m_X;
 	int32 m_Y;

@@ -2,6 +2,6 @@
 
 #include "FluidSimulation.h"
 
-IMPLEMENT_GAME_MODULE( FDefaultGameModuleImpl, FluidSimulation );
+IMPLEMENT_GAME_MODULE(FDefaultGameModuleImpl, FluidSimulation);
 
 DEFINE_LOG_CATEGORY(LogFluidSimulation)

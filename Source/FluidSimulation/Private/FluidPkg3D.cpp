@@ -27,55 +27,55 @@
 
 FluidPkg3D::FluidPkg3D(int32 x, int32 y, int32 z) : m_X(x), m_Y(y), m_Z(z)
 {
-    mp_prop = MakeShareable(new FluidProperties());
-    mp_prop->diffusion = 0.0f;
-    mp_prop->advection = 0.0f;
-    mp_prop->force = 0.0f;
-    mp_prop->decay = 0.0f;
-    mp_source = MakeShareable(new Fluid3D(m_X, m_Y, m_Z));
-    mp_dest = MakeShareable(new Fluid3D(m_X, m_Y, m_Z));
+	mp_prop = MakeShareable(new FluidProperties());
+	mp_prop->diffusion = 0.0f;
+	mp_prop->advection = 0.0f;
+	mp_prop->force = 0.0f;
+	mp_prop->decay = 0.0f;
+	mp_source = MakeShareable(new Fluid3D(m_X, m_Y, m_Z));
+	mp_dest = MakeShareable(new Fluid3D(m_X, m_Y, m_Z));
 }
 
 FluidPkg3D& FluidPkg3D::operator=(const FluidPkg3D& right)
 {
-    if (this != &right)
-    {
-        mp_source = MakeShareable(new Fluid3D(right.m_X, right.m_Y, right.m_Z));
-        mp_dest = MakeShareable(new Fluid3D(right.m_X, right.m_Y, right.m_Z));
-        mp_prop = MakeShareable(new FluidProperties());
-        mp_prop->diffusion = right.mp_prop->diffusion;
-        mp_prop->advection = right.mp_prop->advection;
-        mp_prop->force = right.mp_prop->force;
-        mp_prop->decay = right.mp_prop->decay;
-    }
-    return *this;
+	if (this != &right)
+	{
+		mp_source = MakeShareable(new Fluid3D(right.m_X, right.m_Y, right.m_Z));
+		mp_dest = MakeShareable(new Fluid3D(right.m_X, right.m_Y, right.m_Z));
+		mp_prop = MakeShareable(new FluidProperties());
+		mp_prop->diffusion = right.mp_prop->diffusion;
+		mp_prop->advection = right.mp_prop->advection;
+		mp_prop->force = right.mp_prop->force;
+		mp_prop->decay = right.mp_prop->decay;
+	}
+	return *this;
 }
 
 void FluidPkg3D::SwapLocations()
 {
-    auto temp = mp_source;
-    mp_source = mp_dest;
-    mp_dest = temp;
+	auto temp = mp_source;
+	mp_source = mp_dest;
+	mp_dest = temp;
 }
 
 void FluidPkg3D::Reset(float v) const
 {
-    mp_source->Set(v);
-    mp_dest->Set(v);
+	mp_source->Set(v);
+	mp_dest->Set(v);
 }
 
 TSharedPtr<Fluid3D, ESPMode::ThreadSafe> FluidPkg3D::Source() const
 {
-    return mp_source;
+	return mp_source;
 }
 
 TSharedPtr<Fluid3D, ESPMode::ThreadSafe> FluidPkg3D::Destination() const
 {
-    return mp_dest;
+	return mp_dest;
 }
 
 TSharedPtr<FluidProperties, ESPMode::ThreadSafe> FluidPkg3D::Properties() const
 {
-    return mp_prop;
+	return mp_prop;
 }
 

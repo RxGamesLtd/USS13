@@ -25,17 +25,17 @@
 #pragma once 
 
 // Properties common to the simulation's heat, ink, pressure, and velocity grids
-struct FluidProperties 
+struct FluidProperties
 {
-    FluidProperties()
-    {
-        diffusion = 0.0f;
-        advection = 0.0f;
-        force = 0.0f;
-        decay = 0.0f;
-    }
+	FluidProperties()
+	{
+		diffusion = 0.0f;
+		advection = 0.0f;
+		force = 0.0f;
+		decay = 0.0f;
+	}
 
-	float diffusion;  
+	float diffusion;
 
 	float advection;
 

@@ -47,12 +47,12 @@ public:
 
 	// Accessors
 	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> Source() const;
-    TSharedPtr<Fluid3D, ESPMode::ThreadSafe> Destination() const;
+	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> Destination() const;
 	TSharedPtr<FluidProperties, ESPMode::ThreadSafe> Properties() const;
 
 private:
-    TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_source;       // source 
-    TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_dest;         // destination
+	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_source;       // source 
+	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_dest;         // destination
 
 	TSharedPtr<FluidProperties, ESPMode::ThreadSafe> mp_prop; // defines properties of fluid 
 

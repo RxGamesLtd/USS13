@@ -56,10 +56,10 @@ public:
 	void Reset() const;
 
 	// Fluid object accessors
-    TSharedPtr<VelPkg3D, ESPMode::ThreadSafe> Velocity() const;
-    TSharedPtr<AtmoPkg3D, ESPMode::ThreadSafe> Pressure() const;
-    TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> Ink() const;
-    TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> Heat() const;
+	TSharedPtr<VelPkg3D, ESPMode::ThreadSafe> Velocity() const;
+	TSharedPtr<AtmoPkg3D, ESPMode::ThreadSafe> Pressure() const;
+	TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> Ink() const;
+	TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> Heat() const;
 
 	// Fluid property accessors
 	int32 DiffusionIterations() const;
@@ -76,15 +76,15 @@ public:
 	bool m_bBoundaryCondition;
 
 protected:
-    // Solids
-    TSharedPtr<TArray<bool>, ESPMode::ThreadSafe> m_solids;
+	// Solids
+	TSharedPtr<TArray<bool>, ESPMode::ThreadSafe> m_solids;
 	// Fluid objects
 	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> m_curl;
-    TSharedPtr<VelPkg3D, ESPMode::ThreadSafe> mp_velocity;
-    TSharedPtr<AtmoPkg3D, ESPMode::ThreadSafe> mp_pressure;  // equivalent to density
-    TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> mp_ink;       // ink is one fluid suspended in another, like smoke in air
-    TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> mp_heat;
-	
+	TSharedPtr<VelPkg3D, ESPMode::ThreadSafe> mp_velocity;
+	TSharedPtr<AtmoPkg3D, ESPMode::ThreadSafe> mp_pressure;  // equivalent to density
+	TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> mp_ink;       // ink is one fluid suspended in another, like smoke in air
+	TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> mp_heat;
+
 	// Fluid properties
 	int32 m_diffusionIter;    // diffusion cycles per call to Update()
 	float m_vorticity;      // level of vorticity confinement to apply
@@ -115,11 +115,11 @@ private:
 	// Smooth out the velocity and pressure fields by applying a diffusion filter
 	void Diffusion(TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_in, TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_out, const float scale) const;
 
-    void DiffusionStable(TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_in, TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_out, const float scale) const;
+	void DiffusionStable(TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_in, TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_out, const float scale) const;
 
-    bool IsSolid(int32 this_x, int32 this_y, int32 this_z) const;
+	bool IsSolid(int32 this_x, int32 this_y, int32 this_z) const;
 
-    // Checks if destination point during advection is out of bounds and pulls point in if needed
+	// Checks if destination point during advection is out of bounds and pulls point in if needed
 	bool Collide(int32 this_x, int32 this_y, int32 this_z, float &new_x, float &new_y, float &new_z) const;
 
 	// Alters velocity to move areas of high pressure to low pressure to emulate incompressibility and mass conservation.
@@ -131,7 +131,7 @@ private:
 
 	// Cosmetic patch that accellerates the velocity field in a direction tangential to the curve defined by the surrounding points
 	// in ordert to produce vorticities in the fluid 
-	void VorticityConfinement(const float scale) const; 
+	void VorticityConfinement(const float scale) const;
 
 	// Returns the vortex strength (curl) at the specified cell. 
 	float Curl(const int32 x, const int32 y, const int32 z) const;
