@@ -3,53 +3,45 @@
 #include "SS13Remake.h"
 #include "IntVector.h"
 #include "ObjectBase.h"
+#include "AtmoStruct.h"
 
 #include "GridUtils.generated.h"
 
-USTRUCT()
-struct FAtmosCell
-{
-    GENERATED_USTRUCT_BODY();
-
-    float N2O;
-    float O2;
-    float H2;
-    float CO2;
-
-    FAtmosCell()
-    {
-        N2O = O2 = H2 = CO2 = 0.0f;
-    }
-};
-
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FGridCell
 {
-    GENERATED_USTRUCT_BODY();
+    GENERATED_BODY();
 
-    UPROPERTY()
+    UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
     FIntVector Index;
 
-    UPROPERTY()
+    UPROPERTY(BlueprintReadWrite, VisibleAnywhere)
     uint8 WallN;
 
-    UPROPERTY()
+    UPROPERTY(BlueprintReadWrite, VisibleAnywhere)
     uint8 WallS;
 
-    UPROPERTY()
+    UPROPERTY(BlueprintReadWrite, VisibleAnywhere)
     uint8 WallE;
 
-    UPROPERTY()
+    UPROPERTY(BlueprintReadWrite, VisibleAnywhere)
     uint8 WallW;
 
-    UPROPERTY()
+    UPROPERTY(BlueprintReadWrite, VisibleAnywhere)
     uint8 Floor;
 
-    UPROPERTY()
-    FAtmosCell Atmos;
+	UFUNCTION(Category = "Grid", BlueprintCallable)
+	FAtmoStruct GetAtmo(FVector location) const;
 
-    FGridCell()
+    FGridCell(TSharedPtr<AWorldGrid> grid, FIntVector location)
     {
-        Index = FIntVector(1);
-    }
+        Index = location;
+		WorldGrid = grid;
+	};
+
+private:
+
+	UPROPERTY()
+	TSharedPtr<AWorldGrid> WorldGrid;
+
 };

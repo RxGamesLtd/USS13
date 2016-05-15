@@ -4,34 +4,31 @@
 
 class AFogOfWarManager;
 
-/**
- * 
- */
 class SS13REMAKE_API FogOfWarWorker : public FRunnable
 {
 public:
-    explicit FogOfWarWorker(AFogOfWarManager* manager);
-    virtual ~FogOfWarWorker();
+	explicit FogOfWarWorker(AFogOfWarManager* manager);
+	virtual ~FogOfWarWorker();
 
-    //FRunnable interface
-    virtual bool Init() override;
-    virtual uint32 Run() override;
-    virtual void Stop() override;
+	//FRunnable interface
+	virtual bool Init() override;
+	virtual uint32 Run() override;
+	virtual void Stop() override;
 
-    //Method to perform work
-    void UpdateFowTexture();
+	//Method to perform work
+	void UpdateFowTexture();
 
-    bool bShouldUpdate = false;
+	bool bShouldUpdate = false;
 
-    void ShutDown();
+	void ShutDown();
 
 private:
-    //Thread to run the FRunnable on
-    FRunnableThread* Thread;
+	//Thread to run the FRunnable on
+	FRunnableThread* Thread;
 
-    //Pointer to our manager
-    AFogOfWarManager* Manager;
+	//Pointer to our manager
+	AFogOfWarManager* Manager;
 
-    //Thread safe counter 
-    FThreadSafeCounter StopTaskCounter;
+	//Thread safe counter 
+	FThreadSafeCounter StopTaskCounter;
 };

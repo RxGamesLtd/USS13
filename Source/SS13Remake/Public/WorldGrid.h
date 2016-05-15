@@ -14,33 +14,32 @@ UCLASS()
 class SS13REMAKE_API AWorldGrid : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
+
+public:
 	// Sets default values for this actor's properties
 	AWorldGrid();
 
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-	
+
 	// Called every frame
-	virtual void Tick( float DeltaSeconds ) override;
+	virtual void Tick(float DeltaSeconds) override;
 
 	UPROPERTY()
 	TArray<FGridCell> Grid;
 
-    UPROPERTY(Category = "Grid", BlueprintReadWrite, EditAnywhere)
-    FVector Size;
-	
-    UPROPERTY(Category = "Grid", BlueprintReadWrite, EditAnywhere)
-    FVector CellExtent;
+	UPROPERTY(Category = "Grid", BlueprintReadWrite, EditAnywhere)
+	FVector Size;
 
+	UPROPERTY(Category = "Grid", BlueprintReadWrite, EditAnywhere)
+	FVector CellExtent;
 
-    UFUNCTION(Category = "Grid", BlueprintCallable)
+	UFUNCTION(Category = "Grid", BlueprintCallable)
 	FAtmoStruct GetAtmoStatusByLocation(FVector location) const;
 
 protected:
 
 	FAtmoStruct GetAtmoStatusByIndex(int32 x, int32 y, int32 z) const;
-    TSharedPtr<FFluidSimulationManager> AtmosManager;
+	TSharedPtr<FFluidSimulationManager> AtmosManager;
 };
 
