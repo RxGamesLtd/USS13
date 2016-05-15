@@ -62,7 +62,7 @@ void AFogOfWarManager::StartFOWTextureUpdate() {
 		TextureData.Init(FColor(0, 0, 0, 255), arraySize);
 		LastFrameTextureData.Init(FColor(0, 0, 0, 255), arraySize);
 		HorizontalBlurData.Init(0, arraySize);
-		UnfoggedData.Init(false, arraySize);
+		UnfoggedData.Init(0.0f, arraySize);
 		FowThread = new FogOfWarWorker(this);
 	}
 }
@@ -73,6 +73,10 @@ void AFogOfWarManager::OnFowTextureUpdated_Implementation(UTexture2D* currentTex
 
 void AFogOfWarManager::RegisterFowActor(AActor* Actor) {
 	FowActors.AddUnique(Actor);
+}
+
+void AFogOfWarManager::UnRegisterFowActor(AActor* Actor) {
+	FowActors.Remove(Actor);
 }
 
 bool AFogOfWarManager::GetIsBlurEnabled() {

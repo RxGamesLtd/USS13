@@ -26,6 +26,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = FogOfWar)
 	void RegisterFowActor(AActor* Actor);
 
+	//Register an actor to influence the FOW-texture
+	UFUNCTION(BlueprintCallable, Category = FogOfWar)
+	void UnRegisterFowActor(AActor* Actor);
+
 	//Stolen from https://wiki.unrealengine.com/Dynamic_Textures
 	void UpdateTextureRegions(
 		UTexture2D* Texture,
@@ -51,15 +55,18 @@ public:
 	bool bIsDoneBlending;
 
 	//Should we blur? It takes up quite a lot of CPU time...
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = FogOfWar)
 	bool bIsBlurEnabled = true;
+
+	UPROPERTY(EditAnywhere, Category = FogOfWar)
+	float SecondsToForget = 1.0f;
 
 	//The size of our textures
 	uint32 TextureSize = 1024;
 
 	//Array containing what parts of the map we've unveiled.
 	UPROPERTY()
-	TArray<bool> UnfoggedData;
+	TArray<float> UnfoggedData;
 
 	//Temp array for horizontal blur pass
 	UPROPERTY()
@@ -84,7 +91,7 @@ public:
 	TArray<float> blurKernel;
 
 	//Store the actors that will be unveiling the FOW-texture.
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = FogOfWar)
 	TArray<AActor*> FowActors;
 
 	//DEBUG: Time it took to update the fow texture

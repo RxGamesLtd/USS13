@@ -4,6 +4,8 @@
 
 class AFogOfWarManager;
 
+#define ECC_SightStatic ECC_GameTraceChannel2
+
 class SS13REMAKE_API FogOfWarWorker : public FRunnable
 {
 public:
@@ -16,7 +18,7 @@ public:
 	virtual void Stop() override;
 
 	//Method to perform work
-	void UpdateFowTexture();
+	void UpdateFowTexture(float time);
 
 	bool bShouldUpdate = false;
 
@@ -31,4 +33,6 @@ private:
 
 	//Thread safe counter 
 	FThreadSafeCounter StopTaskCounter;
+
+	float TimeTillLastTick;
 };

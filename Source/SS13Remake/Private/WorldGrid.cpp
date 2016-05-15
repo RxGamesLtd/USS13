@@ -36,9 +36,9 @@ FAtmoStruct AWorldGrid::GetAtmoStatusByIndex(int32 x, int32 y, int32 z) const
 
 FAtmoStruct AWorldGrid::GetAtmoStatusByLocation(FVector location) const
 {
-	auto halfSize = Size * CellExtent / 2.0 + CellExtent;
-	halfSize.Z += CellExtent.Z;
-	auto worldCellSize = CellExtent * 2.0;
+	auto halfSize = Size * CellExtent / 2.0f + CellExtent;
+	halfSize.Z -= CellExtent.Z / 2.0f;
+	auto worldCellSize = CellExtent * 2.0f;
 	auto index = (location - this->GetActorLocation() + halfSize) / worldCellSize;
 
 	auto x = FMath::FloorToInt(index.X);
@@ -47,7 +47,5 @@ FAtmoStruct AWorldGrid::GetAtmoStatusByLocation(FVector location) const
 
 	auto ret =  GetAtmoStatusByIndex(x, y, z);
 
-	//ret.CO2 = x;
-	//ret.N2 = y;
 	return ret;
 }
