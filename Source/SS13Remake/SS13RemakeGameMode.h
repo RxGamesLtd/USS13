@@ -11,6 +11,3 @@ class ASS13RemakeGameMode : public AGameMode
 public:
 	ASS13RemakeGameMode();
 };
-
-
-

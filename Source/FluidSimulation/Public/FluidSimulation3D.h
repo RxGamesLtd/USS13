@@ -81,18 +81,18 @@ protected:
 	// Fluid objects
 	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> m_curl;
 	TSharedPtr<VelPkg3D, ESPMode::ThreadSafe> mp_velocity;
-	TSharedPtr<AtmoPkg3D, ESPMode::ThreadSafe> mp_pressure;  // equivalent to density
-	TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> mp_ink;       // ink is one fluid suspended in another, like smoke in air
+	TSharedPtr<AtmoPkg3D, ESPMode::ThreadSafe> mp_pressure; // equivalent to density
+	TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> mp_ink; // ink is one fluid suspended in another, like smoke in air
 	TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> mp_heat;
 
 	// Fluid properties
-	int32 m_diffusionIter;    // diffusion cycles per call to Update()
-	float m_vorticity;      // level of vorticity confinement to apply
-	float m_pressureAccel;  // Pressure accelleration.  Values >0.5 are more realistic, values too large lead to chaotic waves
-	float m_dt;             // time step
-	int32 m_size_x;                // width of simulation
-	int32 m_size_y;				// height of simulation
-	int32 m_size_z;				// depth of the simulation
+	int32 m_diffusionIter; // diffusion cycles per call to Update()
+	float m_vorticity; // level of vorticity confinement to apply
+	float m_pressureAccel; // Pressure accelleration.  Values >0.5 are more realistic, values too large lead to chaotic waves
+	float m_dt; // time step
+	int32 m_size_x; // width of simulation
+	int32 m_size_y; // height of simulation
+	int32 m_size_z; // depth of the simulation
 
 private:
 	// Apply heat as a diffusion step in 3D
@@ -120,7 +120,7 @@ private:
 	bool IsSolid(int32 this_x, int32 this_y, int32 this_z) const;
 
 	// Checks if destination point during advection is out of bounds and pulls point in if needed
-	bool Collide(int32 this_x, int32 this_y, int32 this_z, float &new_x, float &new_y, float &new_z) const;
+	bool Collide(int32 this_x, int32 this_y, int32 this_z, float& new_x, float& new_y, float& new_z) const;
 
 	// Alters velocity to move areas of high pressure to low pressure to emulate incompressibility and mass conservation.
 	// Allows mass to circulate and not compress into a single cell

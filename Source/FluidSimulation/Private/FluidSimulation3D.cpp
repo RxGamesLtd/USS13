@@ -37,7 +37,7 @@ FluidSimulation3D::FluidSimulation3D(int32 xSize, int32 ySize, int32 zSize, floa
 	mp_ink = MakeShareable(new FluidPkg3D(xSize, ySize, zSize));
 	mp_heat = MakeShareable(new FluidPkg3D(xSize, ySize, zSize));
 	m_solids = MakeShareable(new TArray<bool>());
-	m_solids->SetNum(xSize*ySize*zSize);
+	m_solids->SetNum(xSize * ySize * zSize);
 
 	Reset();
 }
@@ -246,20 +246,20 @@ void FluidSimulation3D::ForwardAdvection(TSharedPtr<Fluid3D, ESPMode::ThreadSafe
 	float fx1, fy1, fz1; // fractional remainders of x1, y1, z1
 	float source_value; // original source value
 	float A, // top-left-back grid point value after advection
-		B, // top-right-back grid point value after advection
-		C, // bottom-left-back grid point value after advection
-		D, // bottom-right-back grid point value after advection
-		E, // top-left-front grid point value after advection
-		F, // top-right-front grid point value after advection
-		G, // bottom-left-front grid point value after advection
-		H; // bottom-right-front grid point value after advection
+	      B, // top-right-back grid point value after advection
+	      C, // bottom-left-back grid point value after advection
+	      D, // bottom-right-back grid point value after advection
+	      E, // top-left-front grid point value after advection
+	      F, // top-right-front grid point value after advection
+	      G, // bottom-left-front grid point value after advection
+	      H; // bottom-right-front grid point value after advection
 
-  // 
-  //    A_________B
-  //    |\        |\
-    //    | \E______|_\F
+	// 
+	//    A_________B
+	//    |\        |\
+	//    | \E______|_\F
 	//    |  |      |  |
-	//	  |  |      |  |
+	//    |  |      |  |
 	//    C--|------D  |
 	//     \ |       \ |
 	//      \|G_______\H
@@ -313,13 +313,13 @@ void FluidSimulation3D::ForwardAdvection(TSharedPtr<Fluid3D, ESPMode::ThreadSafe
 
 					// Bilinear interpolation
 					A = (1.0f - fz1) * (1.0f - fy1) * (1.0f - fx1) * source_value;
-					B = (1.0f - fz1) * (1.0f - fy1) * (fx1)* source_value;
+					B = (1.0f - fz1) * (1.0f - fy1) * (fx1) * source_value;
 					C = (1.0f - fz1) * (fy1) * (1.0f - fx1) * source_value;
-					D = (1.0f - fz1) * (fy1) * (fx1)* source_value;
+					D = (1.0f - fz1) * (fy1) * (fx1) * source_value;
 					E = (fz1) * (1.0f - fy1) * (1.0f - fx1) * source_value;
-					F = (fz1) * (1.0f - fy1) * (fx1)* source_value;
+					F = (fz1) * (1.0f - fy1) * (fx1) * source_value;
 					G = (fz1) * (fy1) * (1.0f - fx1) * source_value;
-					H = (fz1) * (fy1) * (fx1)* source_value;
+					H = (fz1) * (fy1) * (fx1) * source_value;
 
 					// Add A,B,C,D,E,F,G,H to the eight destination cells
 					p_out->element(x1A, y1A, z1A) += A;
@@ -347,17 +347,17 @@ void FluidSimulation3D::ReverseAdvection(TSharedPtr<Fluid3D, ESPMode::ThreadSafe
 	int32 x1A, y1A, z1A; // x, y, z locations of top-left-back grid point (A) after advection
 	float fx1, fy1, fz1; // fractional remainders of x1, y1, z1
 	float A, // top-left-back grid point value after advection
-		B, // top-right-back grid point value after advection
-		C, // bottom-left-back grid point value after advection
-		D, // bottom-right-back grid point value after advection
-		E, // top-left-front grid point value after advection
-		F, // top-right-front grid point value after advection
-		G, // bottom-left-front grid point value after advection
-		H; // bottom-right-front grid point value after advection
+	      B, // top-right-back grid point value after advection
+	      C, // bottom-left-back grid point value after advection
+	      D, // bottom-right-back grid point value after advection
+	      E, // top-left-front grid point value after advection
+	      F, // top-right-front grid point value after advection
+	      G, // bottom-left-front grid point value after advection
+	      H; // bottom-right-front grid point value after advection
 	float A_Total, B_Total, C_Total, D_Total,
-		E_Total, F_Total, G_Total, H_Total; // Total fraction being requested by the 8 grid points after entire grid has been advected
+	      E_Total, F_Total, G_Total, H_Total; // Total fraction being requested by the 8 grid points after entire grid has been advected
 
-  // Copy source to destination as reverse advection results in adding/subtracing not moving
+	// Copy source to destination as reverse advection results in adding/subtracing not moving
 	*p_out = *p_in;
 
 	if (EqualToZero(force))
@@ -832,13 +832,13 @@ void FluidSimulation3D::ReverseSignedAdvection(TSharedPtr<VelPkg3D, ESPMode::Thr
 	int32 x1A, y1A, z1A; // x, y, z locations of top-left-back grid point (A) after advection
 	float fx1, fy1, fz1; // fractional remainders of x1, y1, z1
 	float A_X, A_Y, A_Z, // top-left-back grid point value after advection
-		B_X, B_Y, B_Z, // top-right-back grid point value after advection
-		C_X, C_Y, C_Z, // bottom-left-back grid point value after advection
-		D_X, D_Y, D_Z, // bottom-right-back grid point value after advection
-		E_X, E_Y, E_Z, // top-left-front grid point value after advection
-		F_X, F_Y, F_Z, // top-right-front grid point value after advection
-		G_X, G_Y, G_Z, // bottom-left-front grid point value after advection
-		H_X, H_Y, H_Z; // bottom-right-front grid point value after advection
+	      B_X, B_Y, B_Z, // top-right-back grid point value after advection
+	      C_X, C_Y, C_Z, // bottom-left-back grid point value after advection
+	      D_X, D_Y, D_Z, // bottom-right-back grid point value after advection
+	      E_X, E_Y, E_Z, // top-left-front grid point value after advection
+	      F_X, F_Y, F_Z, // top-right-front grid point value after advection
+	      G_X, G_Y, G_Z, // bottom-left-front grid point value after advection
+	      H_X, H_Y, H_Z; // bottom-right-front grid point value after advection
 
 	if (EqualToZero(scale))
 	{
@@ -883,30 +883,30 @@ void FluidSimulation3D::ReverseSignedAdvection(TSharedPtr<VelPkg3D, ESPMode::Thr
 					B_X = (fx1) * (1.0f - fy1) * (1.0f - fz1) * v->DestinationX()->element(x1A + 1, y1A, z1A);
 					C_X = (1.0f - fx1) * (fy1) * (1.0f - fz1) * v->DestinationX()->element(x1A, y1A + 1, z1A);
 					D_X = (fx1) * (fy1) * (1.0f - fz1) * v->DestinationX()->element(x1A + 1, y1A + 1, z1A);
-					E_X = (1.0f - fx1) * (1.0f - fy1) * (fz1)* v->DestinationX()->element(x1A, y1A, z1A + 1);
-					F_X = (fx1) * (1.0f - fy1) * (fz1)* v->DestinationX()->element(x1A + 1, y1A, z1A + 1);
-					G_X = (1.0f - fx1) * (fy1) * (fz1)* v->DestinationX()->element(x1A, y1A + 1, z1A + 1);
-					H_X = (fx1) * (fy1) * (fz1)* v->DestinationX()->element(x1A + 1, y1A + 1, z1A + 1);
+					E_X = (1.0f - fx1) * (1.0f - fy1) * (fz1) * v->DestinationX()->element(x1A, y1A, z1A + 1);
+					F_X = (fx1) * (1.0f - fy1) * (fz1) * v->DestinationX()->element(x1A + 1, y1A, z1A + 1);
+					G_X = (1.0f - fx1) * (fy1) * (fz1) * v->DestinationX()->element(x1A, y1A + 1, z1A + 1);
+					H_X = (fx1) * (fy1) * (fz1) * v->DestinationX()->element(x1A + 1, y1A + 1, z1A + 1);
 
 					// Get amounts from (in) source cells for Y velocity
 					A_Y = (1.0f - fx1) * (1.0f - fy1) * (1.0f - fz1) * v->DestinationY()->element(x1A, y1A, z1A);
 					B_Y = (fx1) * (1.0f - fy1) * (1.0f - fz1) * v->DestinationY()->element(x1A + 1, y1A, z1A);
 					C_Y = (1.0f - fx1) * (fy1) * (1.0f - fz1) * v->DestinationY()->element(x1A, y1A + 1, z1A);
 					D_Y = (fx1) * (fy1) * (1.0f - fz1) * v->DestinationY()->element(x1A + 1, y1A + 1, z1A);
-					E_Y = (1.0f - fx1) * (1.0f - fy1) * (fz1)* v->DestinationY()->element(x1A, y1A, z1A + 1);
-					F_Y = (fx1) * (1.0f - fy1) * (fz1)* v->DestinationY()->element(x1A + 1, y1A, z1A + 1);
-					G_Y = (1.0f - fx1) * (fy1) * (fz1)* v->DestinationY()->element(x1A, y1A + 1, z1A + 1);
-					H_Y = (fx1) * (fy1) * (fz1)* v->DestinationY()->element(x1A + 1, y1A + 1, z1A + 1);
+					E_Y = (1.0f - fx1) * (1.0f - fy1) * (fz1) * v->DestinationY()->element(x1A, y1A, z1A + 1);
+					F_Y = (fx1) * (1.0f - fy1) * (fz1) * v->DestinationY()->element(x1A + 1, y1A, z1A + 1);
+					G_Y = (1.0f - fx1) * (fy1) * (fz1) * v->DestinationY()->element(x1A, y1A + 1, z1A + 1);
+					H_Y = (fx1) * (fy1) * (fz1) * v->DestinationY()->element(x1A + 1, y1A + 1, z1A + 1);
 
 					// Get amounts from (in) source cells for Z velocity
 					A_Z = (1.0f - fx1) * (1.0f - fy1) * (1.0f - fz1) * v->DestinationZ()->element(x1A, y1A, z1A);
 					B_Z = (fx1) * (1.0f - fy1) * (1.0f - fz1) * v->DestinationZ()->element(x1A + 1, y1A, z1A);
 					C_Z = (1.0f - fx1) * (fy1) * (1.0f - fz1) * v->DestinationZ()->element(x1A, y1A + 1, z1A);
 					D_Z = (fx1) * (fy1) * (1.0f - fz1) * v->DestinationZ()->element(x1A + 1, y1A + 1, z1A);
-					E_Z = (1.0f - fx1) * (1.0f - fy1) * (fz1)* v->DestinationZ()->element(x1A, y1A, z1A + 1);
-					F_Z = (fx1) * (1.0f - fy1) * (fz1)* v->DestinationZ()->element(x1A + 1, y1A, z1A + 1);
-					G_Z = (1.0f - fx1) * (fy1) * (fz1)* v->DestinationZ()->element(x1A, y1A + 1, z1A + 1);
-					H_Z = (fx1) * (fy1) * (fz1)* v->DestinationZ()->element(x1A + 1, y1A + 1, z1A + 1);
+					E_Z = (1.0f - fx1) * (1.0f - fy1) * (fz1) * v->DestinationZ()->element(x1A, y1A, z1A + 1);
+					F_Z = (fx1) * (1.0f - fy1) * (fz1) * v->DestinationZ()->element(x1A + 1, y1A, z1A + 1);
+					G_Z = (1.0f - fx1) * (fy1) * (fz1) * v->DestinationZ()->element(x1A, y1A + 1, z1A + 1);
+					H_Z = (fx1) * (fy1) * (fz1) * v->DestinationZ()->element(x1A + 1, y1A + 1, z1A + 1);
 
 					// X Velocity
 					// add to (out) source cell
@@ -966,7 +966,7 @@ void FluidSimulation3D::ReverseSignedAdvection(TSharedPtr<VelPkg3D, ESPMode::Thr
 }
 
 // Checks if destination point during advection is out of bounds and pulls point in if needed
-bool FluidSimulation3D::Collide(int32 this_x, int32 this_y, int32 this_z, float &new_x, float &new_y, float &new_z) const
+bool FluidSimulation3D::Collide(int32 this_x, int32 this_y, int32 this_z, float& new_x, float& new_y, float& new_z) const
 {
 	const float max_advect = 1 - KINDA_SMALL_NUMBER;
 	auto bCollide = false;
@@ -1331,4 +1331,3 @@ int32 FluidSimulation3D::Depth() const
 {
 	return m_size_y;
 }
-

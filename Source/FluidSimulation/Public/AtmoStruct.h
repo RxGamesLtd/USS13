@@ -20,7 +20,7 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
 	float Toxin;
-	
+
 	//Constructor
 	FAtmoStruct()
 	{

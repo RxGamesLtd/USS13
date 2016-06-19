@@ -39,4 +39,3 @@ public:
 	// points of the floating point coordinates
 	void DistributeFloatingPoint(float x, float y, float z, float value);
 };
-

@@ -16,9 +16,9 @@ void FFluidSimulationManager::SetSize(FVector size)
 {
 	// Preserve boundaries
 	Size = FIntVector(
-		FMath::CeilToInt(size.X),
-		FMath::CeilToInt(size.Y),
-		FMath::CeilToInt(size.Z)) * 2 +
+			FMath::CeilToInt(size.X),
+			FMath::CeilToInt(size.Y),
+			FMath::CeilToInt(size.Z)) * 2 +
 		FIntVector(1);
 }
 
@@ -31,7 +31,7 @@ bool FFluidSimulationManager::Init()
 {
 	sim = MakeShareable(new FluidSimulation3D(Size.X, Size.Y, Size.Z, 0.1f));
 	sim->Pressure()->SourceO2()->Set<FFluidSimulationManager>(this, &FFluidSimulationManager::InitDistribution);
-	
+
 	sim->DiffusionIterations(10);
 	sim->PressureAccel(1.0f);
 	sim->Vorticity(0.03f);

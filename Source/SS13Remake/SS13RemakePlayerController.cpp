@@ -4,7 +4,7 @@
 #include "SS13RemakePlayerController.h"
 #include "AI/Navigation/NavigationSystem.h"
 
-ASS13RemakePlayerController::ASS13RemakePlayerController()
+ASS13RemakePlayerController::ASS13RemakePlayerController(): bMoveToMouseCursor(0)
 {
 	bShowMouseCursor = true;
 	DefaultMouseCursor = EMouseCursor::Crosshairs;
@@ -74,12 +74,12 @@ void ASS13RemakePlayerController::SetNewMoveDestination(const FVector DestLocati
 		{
 			NavSys->SimpleMoveToLocation(this, DestLocation);
 		}
-        else
-        {
-            auto rot = (DestLocation - controlledPawn->GetActorLocation()).Rotation();
-            rot.Pitch = 0.0f;
-            SetControlRotation(rot);
-        }
+		else
+		{
+			auto rot = (DestLocation - controlledPawn->GetActorLocation()).Rotation();
+			rot.Pitch = 0.0f;
+			SetControlRotation(rot);
+		}
 	}
 }
 

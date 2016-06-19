@@ -8,15 +8,16 @@
 #include "FogOfWarManager.generated.h"
 
 UCLASS()
+
 class SS13REMAKE_API AFogOfWarManager : public AActor
 {
 	GENERATED_BODY()
 
 public:
-	AFogOfWarManager(const FObjectInitializer & FOI);
+	AFogOfWarManager(const FObjectInitializer& FOI);
 	virtual ~AFogOfWarManager();
-	virtual void BeginPlay() override;
-	virtual void Tick(float DeltaSeconds) override;
+	void BeginPlay() override;
+	void Tick(float DeltaSeconds) override;
 
 	//Triggers a update in the blueprint
 	UFUNCTION(BlueprintNativeEvent)
@@ -39,7 +40,7 @@ public:
 		uint32 SrcPitch,
 		uint32 SrcBpp,
 		uint8* SrcData,
-		bool bFreeData);
+		bool bFreeData) const;
 
 	//How far will an actor be able to see
 	//CONSIDER: Place it on the actors to allow for individual sight-radius
@@ -98,7 +99,7 @@ public:
 	float fowUpdateTime = 0;
 
 	//Getter for the working thread
-	bool GetIsBlurEnabled();
+	bool GetIsBlurEnabled() const;
 
 private:
 	void UpdateFowTexture();

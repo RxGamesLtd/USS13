@@ -37,7 +37,7 @@ public:
 	FluidPkg3D(int32 xSize, int32 ySize, int32 zSize);
 
 	// Assignment Operator
-	FluidPkg3D& operator= (const FluidPkg3D& right);
+	FluidPkg3D& operator=(const FluidPkg3D& right);
 
 	// Swap the source and destination objects 
 	void SwapLocations();
@@ -51,12 +51,12 @@ public:
 	TSharedPtr<FluidProperties, ESPMode::ThreadSafe> Properties() const;
 
 private:
-	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_source;       // source 
-	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_dest;         // destination
+	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_source; // source 
+	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_dest; // destination
 
 	TSharedPtr<FluidProperties, ESPMode::ThreadSafe> mp_prop; // defines properties of fluid 
 
-	int32 m_X;				  // x dimension
-	int32 m_Y;                  // y dimension
-	int32 m_Z;                  // z dimension
+	int32 m_X; // x dimension
+	int32 m_Y; // y dimension
+	int32 m_Z; // z dimension
 };

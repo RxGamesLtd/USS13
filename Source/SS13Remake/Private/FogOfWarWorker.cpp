@@ -4,43 +4,53 @@
 #include "FogOfWarManager.h"
 #include "FogOfWarWorker.h"
 
-FogOfWarWorker::FogOfWarWorker(AFogOfWarManager* manager) {
+FogOfWarWorker::FogOfWarWorker(AFogOfWarManager* manager)
+{
 	Manager = manager;
 	Thread = FRunnableThread::Create(this, TEXT("AFogOfWarWorker"), 0U, TPri_BelowNormal);
 	TimeTillLastTick = 0.0f;
 }
 
-FogOfWarWorker::~FogOfWarWorker() {
+FogOfWarWorker::~FogOfWarWorker()
+{
 	delete Thread;
 	Thread = nullptr;
 }
 
-void FogOfWarWorker::ShutDown() {
+void FogOfWarWorker::ShutDown()
+{
 	Stop();
 	Thread->WaitForCompletion();
 }
 
-bool FogOfWarWorker::Init() {
-	if (Manager) {
+bool FogOfWarWorker::Init()
+{
+	if (Manager)
+	{
 		Manager->GetWorld()->GetFirstPlayerController()->ClientMessage("Fog of War worker thread started");
 		return true;
 	}
 	return false;
 }
 
-uint32 FogOfWarWorker::Run() {
+uint32 FogOfWarWorker::Run()
+{
 	FPlatformProcess::Sleep(0.03f);
-	
-	while (StopTaskCounter.GetValue() == 0) {
-		float time = 0.0f;
-		if (!Manager || !Manager->GetWorld()) {
+
+	while (StopTaskCounter.GetValue() == 0)
+	{
+		float time;
+		if (!Manager || !Manager->GetWorld())
+		{
 			return 0;
 		}
 		time = Manager->GetWorld()->TimeSeconds;
-		
-		if (!Manager->bHasFOWTextureUpdate) {
+
+		if (!Manager->bHasFOWTextureUpdate)
+		{
 			UpdateFowTexture(Manager->GetWorld()->TimeSince(TimeTillLastTick));
-			if (!Manager->GetWorld()) {
+			if (!Manager->GetWorld())
+			{
 				return 0;
 			}
 			Manager->fowUpdateTime = Manager->GetWorld()->TimeSince(time);
@@ -52,10 +62,11 @@ uint32 FogOfWarWorker::Run() {
 	return 0;
 }
 
-void FogOfWarWorker::UpdateFowTexture(float time) {
+void FogOfWarWorker::UpdateFowTexture(float time) const
+{
 	Manager->LastFrameTextureData = TArray<FColor>(Manager->TextureData);
 	uint32 halfTextureSize = Manager->TextureSize / 2;
-	int signedSize = (int)Manager->TextureSize; //For convenience....
+	int signedSize = static_cast<int>(Manager->TextureSize); //For convenience....
 	TSet<FVector2D> currentlyInSight;
 	TSet<FVector2D> texelsToBlur;
 	int sightTexels = Manager->SightRange * Manager->SamplesPerMeter;
@@ -67,27 +78,32 @@ void FogOfWarWorker::UpdateFowTexture(float time) {
 
 	Manager->GetWorld()->DebugDrawTraceTag = TraceTag;
 
-	for (auto Itr(Manager->FowActors.CreateIterator()); Itr; Itr++) {
+	for (auto Itr(Manager->FowActors.CreateIterator()); Itr; ++Itr)
+	{
 		//Find actor position
 		if (!(*Itr)->IsValidLowLevel()) continue;
 		FVector position = (*Itr)->GetActorLocation();
 
 		//We divide by 100.0 because 1 texel equals 1 meter of visibility-data.
-		int posX = (int)(position.X / dividend) + halfTextureSize;
-		int posY = (int)(position.Y / dividend) + halfTextureSize;
-		float integerX, integerY;
+		int posX = static_cast<int>(position.X / dividend) + halfTextureSize;
+		int posY = static_cast<int>(position.Y / dividend) + halfTextureSize;
+		//float integerX;
+		//float integerY;
 
-		FVector2D fractions = FVector2D(FMath::Modf(position.X / dividend, &integerX), FMath::Modf(position.Y / dividend, &integerY));
+		//FVector2D fractions = FVector2D(FMath::Modf(position.X / dividend, &integerX), FMath::Modf(position.Y / dividend, &integerY));
 		FVector2D textureSpacePos = FVector2D(posX, posY);
-		int size = (int)Manager->TextureSize;
+		int size = static_cast<int>(Manager->TextureSize);
 
 		FCollisionQueryParams queryParams(FName(TEXT("FOW trace")), false, (*Itr));
 		int halfKernelSize = (Manager->blurKernelSize - 1) / 2;
 
 		//Store the positions we want to blur
-		for (int y = posY - sightTexels - halfKernelSize; y <= posY + sightTexels + halfKernelSize; y++) {
-			for (int x = posX - sightTexels - halfKernelSize; x <= posX + sightTexels + halfKernelSize; x++) {
-				if (x > 0 && x < size && y > 0 && y < size) {
+		for (int y = posY - sightTexels - halfKernelSize; y <= posY + sightTexels + halfKernelSize; y++)
+		{
+			for (int x = posX - sightTexels - halfKernelSize; x <= posX + sightTexels + halfKernelSize; x++)
+			{
+				if (x > 0 && x < size && y > 0 && y < size)
+				{
 					texelsToBlur.Add(FIntPoint(x, y));
 				}
 			}
@@ -98,22 +114,26 @@ void FogOfWarWorker::UpdateFowTexture(float time) {
 		{
 			float secondsToForget = Manager->SecondsToForget;
 			Manager->UnfoggedData[i] -= 1.0f / secondsToForget * time;
-			
+
 			if (Manager->UnfoggedData[i] < 0.0f)
 				Manager->UnfoggedData[i] = 0.0f;
 		}
 
 		//Unveil the positions our actors are currently looking at
-		for (int y = posY - sightTexels; y <= posY + sightTexels; y++) {
-			for (int x = posX - sightTexels; x <= posX + sightTexels; x++) {
+		for (int y = posY - sightTexels; y <= posY + sightTexels; y++)
+		{
+			for (int x = posX - sightTexels; x <= posX + sightTexels; x++)
+			{
 				//Kernel for radial sight
-				if (x > 0 && x < size && y > 0 && y < size) {
+				if (x > 0 && x < size && y > 0 && y < size)
+				{
 					FVector2D currentTextureSpacePos = FVector2D(x, y);
-					int length = (int)(textureSpacePos - currentTextureSpacePos).Size();
-					if (length <= sightTexels) {
+					int length = static_cast<int>((textureSpacePos - currentTextureSpacePos).Size());
+					if (length <= sightTexels)
+					{
 						FVector currentWorldSpacePos = FVector(
-							((x - (int)halfTextureSize)) * dividend,
-							((y - (int)halfTextureSize)) * dividend,
+							((x - static_cast<int>(halfTextureSize))) * dividend,
+							((y - static_cast<int>(halfTextureSize))) * dividend,
 							position.Z);
 
 						//CONSIDER: This is NOT the most efficient way to do conditional unfogging. With long view distances and/or a lot of actors affecting the FOW-data
@@ -124,7 +144,8 @@ void FogOfWarWorker::UpdateFowTexture(float time) {
 						//for every ray we would unveil all the points between the collision and origo using Bresenham's Line-drawing algorithm.
 						//However, the tracing doesn't seem like it takes much time at all (~0.02ms with four actors tracing circles of 18 texels each),
 						//it's the blurring that chews CPU..
-						if (!Manager->GetWorld()->LineTraceTestByChannel(position, currentWorldSpacePos, ECC_SightStatic, queryParams)) {
+						if (!Manager->GetWorld()->LineTraceTestByChannel(position, currentWorldSpacePos, ECC_SightStatic, queryParams))
+						{
 							//Unveil the positions we are currently seeing
 							Manager->UnfoggedData[x + y * Manager->TextureSize] = 1.0f;
 							//Store the positions we are currently seeing.
@@ -136,61 +157,76 @@ void FogOfWarWorker::UpdateFowTexture(float time) {
 		}
 	}
 
-	if (Manager->GetIsBlurEnabled()) {
+	if (Manager->GetIsBlurEnabled())
+	{
 		//Horizontal blur pass
 		int offset = floorf(Manager->blurKernelSize / 2.0f);
-		for (auto Itr(texelsToBlur.CreateIterator()); Itr; ++Itr) {
+		for (auto Itr(texelsToBlur.CreateIterator()); Itr; ++Itr)
+		{
 			int x = (Itr)->IntPoint().X;
 			int y = (Itr)->IntPoint().Y;
 			float sum = 0;
-			for (int i = 0; i < Manager->blurKernelSize; i++) {
+			for (int i = 0; i < Manager->blurKernelSize; i++)
+			{
 				int shiftedIndex = i - offset;
-				if (x + shiftedIndex >= 0 && x + shiftedIndex <= signedSize - 1) {
-					if (Manager->UnfoggedData[x + shiftedIndex + (y * signedSize)] > 0.0f) {
+				if (x + shiftedIndex >= 0 && x + shiftedIndex <= signedSize - 1)
+				{
+					if (Manager->UnfoggedData[x + shiftedIndex + (y * signedSize)] > 0.0f)
+					{
 						//If we are currently looking at a position, unveil it completely
-						if (currentlyInSight.Contains(FVector2D(x + shiftedIndex, y))) {
+						if (currentlyInSight.Contains(FVector2D(x + shiftedIndex, y)))
+						{
 							sum += (Manager->blurKernel[i] * 255);
 						}
 						//If this is a previously discovered position that we're not currently looking at, put it into a "shroud of darkness".							
-						else {
+						else
+						{
 							sum += (Manager->blurKernel[i] * 100);
 						}
 					}
 				}
 			}
-			Manager->HorizontalBlurData[x + y * signedSize] = (uint8)sum;
+			Manager->HorizontalBlurData[x + y * signedSize] = static_cast<uint8>(sum);
 		}
 
 
 		//Vertical blur pass
-		for (auto Itr(texelsToBlur.CreateIterator()); Itr; ++Itr) {
+		for (auto Itr(texelsToBlur.CreateIterator()); Itr; ++Itr)
+		{
 			int x = (Itr)->IntPoint().X;
 			int y = (Itr)->IntPoint().Y;
 			float sum = 0;
-			for (int i = 0; i < Manager->blurKernelSize; i++) {
+			for (int i = 0; i < Manager->blurKernelSize; i++)
+			{
 				int shiftedIndex = i - offset;
-				if (y + shiftedIndex >= 0 && y + shiftedIndex <= signedSize - 1) {
+				if (y + shiftedIndex >= 0 && y + shiftedIndex <= signedSize - 1)
+				{
 					sum += (Manager->blurKernel[i] * Manager->HorizontalBlurData[x + (y + shiftedIndex) * signedSize]);
 				}
 			}
-			Manager->TextureData[x + y * signedSize] = FColor((uint8)sum, (uint8)sum, (uint8)sum, 255);
+			Manager->TextureData[x + y * signedSize] = FColor(static_cast<uint8>(sum), static_cast<uint8>(sum), static_cast<uint8>(sum), 255);
 		}
 	}
-	else {
-		for (int y = 0; y < signedSize; y++) {
-			for (int x = 0; x < signedSize; x++) {
-
-				if (Manager->UnfoggedData[x + (y * signedSize)] > 0.0f) {
-					if (currentlyInSight.Contains(FVector2D(x, y))) {
-						Manager->TextureData[x + y * signedSize] = FColor((uint8)255, (uint8)255, (uint8)255, 255);
+	else
+	{
+		for (int y = 0; y < signedSize; y++)
+		{
+			for (int x = 0; x < signedSize; x++)
+			{
+				if (Manager->UnfoggedData[x + (y * signedSize)] > 0.0f)
+				{
+					if (currentlyInSight.Contains(FVector2D(x, y)))
+					{
+						Manager->TextureData[x + y * signedSize] = FColor(static_cast<uint8>(255), static_cast<uint8>(255), static_cast<uint8>(255), 255);
 					}
-					else {
-						Manager->TextureData[x + y * signedSize] = FColor((uint8)100, (uint8)100, (uint8)100, 255);
+					else
+					{
+						Manager->TextureData[x + y * signedSize] = FColor(static_cast<uint8>(100), static_cast<uint8>(100), static_cast<uint8>(100), 255);
 					}
 				}
 				else
 				{
-					Manager->TextureData[x + y * signedSize] = FColor((uint8)0, (uint8)0, (uint8)0, 255);
+					Manager->TextureData[x + y * signedSize] = FColor(static_cast<uint8>(0), static_cast<uint8>(0), static_cast<uint8>(0), 255);
 				}
 			}
 		}
@@ -199,6 +235,7 @@ void FogOfWarWorker::UpdateFowTexture(float time) {
 	Manager->bHasFOWTextureUpdate = true;
 }
 
-void FogOfWarWorker::Stop() {
+void FogOfWarWorker::Stop()
+{
 	StopTaskCounter.Increment();
 }

@@ -13,12 +13,12 @@ public:
 	virtual ~FogOfWarWorker();
 
 	//FRunnable interface
-	virtual bool Init() override;
-	virtual uint32 Run() override;
-	virtual void Stop() override;
+	bool Init() override;
+	uint32 Run() override;
+	void Stop() override;
 
 	//Method to perform work
-	void UpdateFowTexture(float time);
+	void UpdateFowTexture(float time) const;
 
 	bool bShouldUpdate = false;
 

@@ -78,4 +78,3 @@ TSharedPtr<FluidProperties, ESPMode::ThreadSafe> FluidPkg3D::Properties() const
 {
 	return mp_prop;
 }
-

@@ -1,4 +1,3 @@
-
 #include "Public/FluidSimulation.h"
 #include "Public/AtmoPkg3D.h"
 
@@ -119,4 +118,3 @@ TSharedPtr<FluidProperties, ESPMode::ThreadSafe> AtmoPkg3D::Properties() const
 {
 	return mp_prop;
 }
-

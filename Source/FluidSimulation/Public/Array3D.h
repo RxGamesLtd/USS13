@@ -31,10 +31,11 @@ template <typename T>
 class TArray3D : public TArray<T>
 {
 public:
+
 	// Constructor
 	TArray3D(int32 x, int32 y, int32 z)
 		: TArray<T>(),
-		m_X(x), m_Y(y), m_Z(z), m_size(x * y * z)
+		  m_X(x), m_Y(y), m_Z(z), m_size(x * y * z)
 	{
 		TArray<T>::SetNum(m_size);
 	}
@@ -48,7 +49,7 @@ public:
 	// Copy Constructor
 	TArray3D(const TArray3D& arrIn)
 		: TArray<T>(arrIn),
-		m_X(arrIn.m_X), m_Y(arrIn.m_Y), m_Z(arrIn.m_Z), m_size(arrIn.m_X * arrIn.m_Y * arrIn.m_Z)
+		  m_X(arrIn.m_X), m_Y(arrIn.m_Y), m_Z(arrIn.m_Z), m_size(arrIn.m_X * arrIn.m_Y * arrIn.m_Z)
 	{
 	}
 
@@ -294,7 +295,7 @@ public:
 			{
 				for (z = 0; z < m_Z; ++z)
 				{
-					(t->*fp)(TArray<T>::operator[](i), x, y, z, i);
+					(t ->* fp)(TArray<T>::operator[](i), x, y, z, i);
 					++i;
 				}
 			}
@@ -308,4 +309,3 @@ protected:
 	int32 m_Z; // Z dimension of array
 	int64 m_size; // Total size of array
 };
-

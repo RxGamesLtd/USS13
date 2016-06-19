@@ -23,11 +23,11 @@ public:
 		return StopTaskCounter.GetValue() == 0;
 	}
 
-	virtual bool Init() override;
+	bool Init() override;
 
-	virtual uint32 Run() override;
+	uint32 Run() override;
 
-	virtual void Stop() override;
+	void Stop() override;
 
 	FAtmoStruct GetValue(int32 x, int32 y, int32 z) const;
 

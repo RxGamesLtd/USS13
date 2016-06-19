@@ -131,4 +131,3 @@ TSharedPtr<FluidProperties, ESPMode::ThreadSafe> VelPkg3D::Properties() const
 {
 	return mp_prop;
 }
-

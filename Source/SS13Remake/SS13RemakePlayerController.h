@@ -16,8 +16,8 @@ protected:
 	uint32 bMoveToMouseCursor : 1;
 
 	// Begin PlayerController interface
-	virtual void PlayerTick(float DeltaTime) override;
-	virtual void SetupInputComponent() override;
+	void PlayerTick(float DeltaTime) override;
+	void SetupInputComponent() override;
 	// End PlayerController interface
 
 	/** Navigate player to the current mouse cursor location. */
@@ -25,7 +25,7 @@ protected:
 
 	/** Navigate player to the current touch location. */
 	void MoveToTouchLocation(const ETouchIndex::Type FingerIndex, const FVector Location);
-	
+
 	/** Navigate player to the given world location. */
 	void SetNewMoveDestination(const FVector DestLocation);
 
@@ -33,5 +33,3 @@ protected:
 	void OnSetDestinationPressed();
 	void OnSetDestinationReleased();
 };
-
-

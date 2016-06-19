@@ -3,7 +3,8 @@
 #include "SS13Remake.h"
 #include "FogOfWarManager.h"
 
-AFogOfWarManager::AFogOfWarManager(const FObjectInitializer &FOI) : Super(FOI) {
+AFogOfWarManager::AFogOfWarManager(const FObjectInitializer& FOI) : Super(FOI), bIsDoneBlending(false), FOWTexture(nullptr), LastFOWTexture(nullptr), FowThread(nullptr)
+{
 	PrimaryActorTick.bCanEverTick = true;
 	textureRegions = new FUpdateTextureRegion2D(0, 0, 0, 0, TextureSize, TextureSize);
 
@@ -27,26 +28,31 @@ AFogOfWarManager::AFogOfWarManager(const FObjectInitializer &FOI) : Super(FOI) {
 	blurKernel[14] = 0.000489f;
 }
 
-AFogOfWarManager::~AFogOfWarManager() {
-	if (FowThread) {
+AFogOfWarManager::~AFogOfWarManager()
+{
+	if (FowThread)
+	{
 		FowThread->ShutDown();
 	}
 }
 
-void AFogOfWarManager::BeginPlay() {
+void AFogOfWarManager::BeginPlay()
+{
 	Super::BeginPlay();
 	FowActors.Reset();
 	bIsDoneBlending = true;
 	StartFOWTextureUpdate();
 }
 
-void AFogOfWarManager::Tick(float DeltaSeconds) {
+void AFogOfWarManager::Tick(float DeltaSeconds)
+{
 	Super::Tick(DeltaSeconds);
-	if (FOWTexture && LastFOWTexture && bHasFOWTextureUpdate && bIsDoneBlending) {
+	if (FOWTexture && LastFOWTexture && bHasFOWTextureUpdate && bIsDoneBlending)
+	{
 		LastFOWTexture->UpdateResourceW();
-		UpdateTextureRegions(LastFOWTexture, (int32)0, (uint32)1, textureRegions, (uint32)(4 * TextureSize), (uint32)4, (uint8*)LastFrameTextureData.GetData(), false);
+		UpdateTextureRegions(LastFOWTexture, static_cast<int32>(0), static_cast<uint32>(1), textureRegions, static_cast<uint32>(4 * TextureSize), static_cast<uint32>(4), reinterpret_cast<uint8*>(LastFrameTextureData.GetData()), false);
 		FOWTexture->UpdateResourceW();
-		UpdateTextureRegions(FOWTexture, (int32)0, (uint32)1, textureRegions, (uint32)(4 * TextureSize), (uint32)4, (uint8*)TextureData.GetData(), false);
+		UpdateTextureRegions(FOWTexture, static_cast<int32>(0), static_cast<uint32>(1), textureRegions, static_cast<uint32>(4 * TextureSize), static_cast<uint32>(4), reinterpret_cast<uint8*>(TextureData.GetData()), false);
 		bHasFOWTextureUpdate = false;
 		bIsDoneBlending = false;
 		//Trigger the blueprint update
@@ -54,8 +60,10 @@ void AFogOfWarManager::Tick(float DeltaSeconds) {
 	}
 }
 
-void AFogOfWarManager::StartFOWTextureUpdate() {
-	if (!FOWTexture) {
+void AFogOfWarManager::StartFOWTextureUpdate()
+{
+	if (!FOWTexture)
+	{
 		FOWTexture = UTexture2D::CreateTransient(TextureSize, TextureSize);
 		LastFOWTexture = UTexture2D::CreateTransient(TextureSize, TextureSize);
 		int arraySize = TextureSize * TextureSize;
@@ -67,23 +75,27 @@ void AFogOfWarManager::StartFOWTextureUpdate() {
 	}
 }
 
-void AFogOfWarManager::OnFowTextureUpdated_Implementation(UTexture2D* currentTexture, UTexture2D* lastTexture) {
+void AFogOfWarManager::OnFowTextureUpdated_Implementation(UTexture2D* currentTexture, UTexture2D* lastTexture)
+{
 	//Handle in blueprint
 }
 
-void AFogOfWarManager::RegisterFowActor(AActor* Actor) {
+void AFogOfWarManager::RegisterFowActor(AActor* Actor)
+{
 	FowActors.AddUnique(Actor);
 }
 
-void AFogOfWarManager::UnRegisterFowActor(AActor* Actor) {
+void AFogOfWarManager::UnRegisterFowActor(AActor* Actor)
+{
 	FowActors.Remove(Actor);
 }
 
-bool AFogOfWarManager::GetIsBlurEnabled() {
+bool AFogOfWarManager::GetIsBlurEnabled() const
+{
 	return bIsBlurEnabled;
 }
 
-void AFogOfWarManager::UpdateTextureRegions(UTexture2D* Texture, int32 MipIndex, uint32 NumRegions, FUpdateTextureRegion2D* Regions, uint32 SrcPitch, uint32 SrcBpp, uint8* SrcData, bool bFreeData)
+void AFogOfWarManager::UpdateTextureRegions(UTexture2D* Texture, int32 MipIndex, uint32 NumRegions, FUpdateTextureRegion2D* Regions, uint32 SrcPitch, uint32 SrcBpp, uint8* SrcData, bool bFreeData) const
 {
 	if (Texture && Texture->Resource)
 	{
@@ -100,7 +112,7 @@ void AFogOfWarManager::UpdateTextureRegions(UTexture2D* Texture, int32 MipIndex,
 
 		FUpdateTextureRegionsData* RegionData = new FUpdateTextureRegionsData;
 
-		RegionData->Texture2DResource = (FTexture2DResource*)Texture->Resource;
+		RegionData->Texture2DResource = static_cast<FTexture2DResource*>(Texture->Resource);
 		RegionData->MipIndex = MipIndex;
 		RegionData->NumRegions = NumRegions;
 		RegionData->Regions = Regions;
@@ -120,21 +132,21 @@ void AFogOfWarManager::UpdateTextureRegions(UTexture2D* Texture, int32 MipIndex,
 					{
 						RHIUpdateTexture2D(
 							RegionData->Texture2DResource->GetTexture2DRHI(),
-							RegionData->MipIndex - CurrentFirstMip,
-							RegionData->Regions[RegionIndex],
-							RegionData->SrcPitch,
-							RegionData->SrcData
-							+ RegionData->Regions[RegionIndex].SrcY * RegionData->SrcPitch
-							+ RegionData->Regions[RegionIndex].SrcX * RegionData->SrcBpp
-							);
-					}
-				}
-				if (bFreeData)
-				{
-					FMemory::Free(RegionData->Regions);
-					FMemory::Free(RegionData->SrcData);
-				}
-				delete RegionData;
+						RegionData->MipIndex - CurrentFirstMip,
+						RegionData->Regions[RegionIndex],
+						RegionData->SrcPitch,
+						RegionData->SrcData
+						+ RegionData->Regions[RegionIndex].SrcY * RegionData->SrcPitch
+						+ RegionData->Regions[RegionIndex].SrcX * RegionData->SrcBpp
+						);
+			}
+			}
+			if (bFreeData)
+			{
+				FMemory::Free(RegionData->Regions);
+				FMemory::Free(RegionData->SrcData);
+			}
+			delete RegionData;
 			});
 	}
 }

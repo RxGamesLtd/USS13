@@ -23,7 +23,6 @@ void AWorldGrid::BeginPlay()
 void AWorldGrid::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
 FAtmoStruct AWorldGrid::GetAtmoStatusByIndex(int32 x, int32 y, int32 z) const
@@ -45,7 +44,7 @@ FAtmoStruct AWorldGrid::GetAtmoStatusByLocation(FVector location) const
 	auto y = FMath::FloorToInt(index.Y);
 	auto z = FMath::FloorToInt(index.Z);
 
-	auto ret =  GetAtmoStatusByIndex(x, y, z);
+	auto ret = GetAtmoStatusByIndex(x, y, z);
 
 	return ret;
 }

@@ -46,13 +46,11 @@ void Fluid3D::DistributeFloatingPoint(float x, float y, float z, float value)
 
 	// Add appropriate fraction of value into each of the 8 cube points
 	this->element(ix, iy, iz) += (1.0f - fx) * (1.0f - fy) * (1.0f - fz) * value;
-	this->element(ix + 1, iy, iz) += (fx)      * (1.0f - fy) * (1.0f - fz) * value;
-	this->element(ix, iy + 1, iz) += (1.0f - fx) * (fy)      * (1.0f - fz) * value;
-	this->element(ix, iy, iz + 1) += (1.0f - fx) * (1.0f - fy) * (fz)* value;
-	this->element(ix + 1, iy + 1, iz) += (fx)      * (fy)      * (1.0f - fz) * value;
-	this->element(ix + 1, iy, iz + 1) += (fx)      * (1.0f - fy) * (fz)* value;
-	this->element(ix, iy + 1, iz + 1) += (1.0f - fx) * (fy)      * (fz)* value;
-	this->element(ix + 1, iy + 1, iz + 1) += (fx)      * (fy)      * (fz)* value;
+	this->element(ix + 1, iy, iz) += (fx) * (1.0f - fy) * (1.0f - fz) * value;
+	this->element(ix, iy + 1, iz) += (1.0f - fx) * (fy) * (1.0f - fz) * value;
+	this->element(ix, iy, iz + 1) += (1.0f - fx) * (1.0f - fy) * (fz) * value;
+	this->element(ix + 1, iy + 1, iz) += (fx) * (fy) * (1.0f - fz) * value;
+	this->element(ix + 1, iy, iz + 1) += (fx) * (1.0f - fy) * (fz) * value;
+	this->element(ix, iy + 1, iz + 1) += (1.0f - fx) * (fy) * (fz) * value;
+	this->element(ix + 1, iy + 1, iz + 1) += (fx) * (fy) * (fz) * value;
 }
-
-

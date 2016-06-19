@@ -17,10 +17,10 @@ public:
 	AWorldGrid();
 
 	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+	void BeginPlay() override;
 
 	// Called every frame
-	virtual void Tick(float DeltaSeconds) override;
+	void Tick(float DeltaSeconds) override;
 
 	UPROPERTY()
 	TArray<FGridCell> Grid;
@@ -39,4 +39,3 @@ protected:
 	FAtmoStruct GetAtmoStatusByIndex(int32 x, int32 y, int32 z) const;
 	TSharedPtr<FFluidSimulationManager> AtmosManager;
 };
-
