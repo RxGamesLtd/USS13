@@ -6,7 +6,7 @@
 AFogOfWarManager::AFogOfWarManager(const FObjectInitializer& FOI) : Super(FOI), bIsDoneBlending(false), FOWTexture(nullptr), LastFOWTexture(nullptr), FowThread(nullptr)
 {
 	PrimaryActorTick.bCanEverTick = true;
-	textureRegions = new FUpdateTextureRegion2D(0, 0, 0, 0, TextureSize, TextureSize);
+	textureRegions = new FUpdateTextureRegion2D(0U, 0U, 0, 0, TextureSize, TextureSize);
 
 	//15 Gaussian samples. Sigma is 2.0.
 	//CONSIDER: Calculate the kernel instead, more flexibility...
@@ -50,9 +50,9 @@ void AFogOfWarManager::Tick(float DeltaSeconds)
 	if (FOWTexture && LastFOWTexture && bHasFOWTextureUpdate && bIsDoneBlending)
 	{
 		LastFOWTexture->UpdateResourceW();
-		UpdateTextureRegions(LastFOWTexture, static_cast<int32>(0), static_cast<uint32>(1), textureRegions, static_cast<uint32>(4 * TextureSize), static_cast<uint32>(4), reinterpret_cast<uint8*>(LastFrameTextureData.GetData()), false);
+		UpdateTextureRegions(LastFOWTexture, static_cast<int32>(0), static_cast<uint32>(1U), textureRegions, static_cast<uint32>(4 * TextureSize), static_cast<uint32>(4U), reinterpret_cast<uint8*>(LastFrameTextureData.GetData()), false);
 		FOWTexture->UpdateResourceW();
-		UpdateTextureRegions(FOWTexture, static_cast<int32>(0), static_cast<uint32>(1), textureRegions, static_cast<uint32>(4 * TextureSize), static_cast<uint32>(4), reinterpret_cast<uint8*>(TextureData.GetData()), false);
+		UpdateTextureRegions(FOWTexture, static_cast<int32>(0), static_cast<uint32>(1U), textureRegions, static_cast<uint32>(4 * TextureSize), static_cast<uint32>(4), reinterpret_cast<uint8*>(TextureData.GetData()), false);
 		bHasFOWTextureUpdate = false;
 		bIsDoneBlending = false;
 		//Trigger the blueprint update
@@ -121,8 +121,8 @@ void AFogOfWarManager::UpdateTextureRegions(UTexture2D* Texture, int32 MipIndex,
 		RegionData->SrcData = SrcData;
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			UpdateTextureRegionsData,
-			FUpdateTextureRegionsData*, RegionData, RegionData,
+			UpdateTextureRegionsData, FUpdateTextureRegionsData*,
+			RegionData, RegionData,
 			bool, bFreeData, bFreeData,
 			{
 				for (uint32 RegionIndex = 0; RegionIndex < RegionData->NumRegions; ++RegionIndex)

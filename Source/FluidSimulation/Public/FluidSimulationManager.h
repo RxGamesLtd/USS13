@@ -40,6 +40,4 @@ private:
 	TSharedPtr<FRunnableThread> Thread;
 	/** Stop this thread? Uses Thread Safe Counter */
 	FThreadSafeCounter StopTaskCounter;
-	/** Initial distribution of values*/
-	void InitDistribution(float& arr, int32 i, int32 j, int32 k, int64 index) const;
 };

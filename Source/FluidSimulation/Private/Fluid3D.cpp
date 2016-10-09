@@ -24,7 +24,6 @@
 
 #include "Public/FluidSimulation.h"
 #include "Fluid3D.h"
-#include "UnrealMathUtility.h"
 
 Fluid3D::Fluid3D(int32 x, int32 y, int32 z) : TArray3D(x, y, z)
 {

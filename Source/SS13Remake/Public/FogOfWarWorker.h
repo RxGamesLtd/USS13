@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include <Runtime/Core/Public/HAL/Platform.h>
+#include <Runtime/Core/Public/Core.h>
+
 class AFogOfWarManager;
 
 #define ECC_SightStatic ECC_GameTraceChannel2

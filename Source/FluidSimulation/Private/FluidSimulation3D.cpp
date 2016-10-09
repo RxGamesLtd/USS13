@@ -24,7 +24,6 @@
 
 #include "Public/FluidSimulation.h"
 #include "Public/FluidSimulation3D.h"
-#include "UnrealMathUtility.h"
 
 DEFINE_STAT(STAT_AtmosUpdatesCount);
 
@@ -1139,7 +1138,7 @@ void FluidSimulation3D::VorticityConfinement(const float scale) const
 		{
 			for (int32 k = 1; k < m_size_z - 1; k++)
 			{
-				m_curl->element(i, j, k) = fabs(Curl(i, j, k));
+				m_curl->element(i, j, k) = FMath::Abs(Curl(i, j, k));
 			}
 		}
 	}

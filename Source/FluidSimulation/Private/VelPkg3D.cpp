@@ -25,7 +25,6 @@
 #include "Public/FluidSimulation.h"
 #include "VelPkg3D.h"
 
-
 VelPkg3D::VelPkg3D(int32 x, int32 y, int32 z) : m_X(x), m_Y(y), m_Z(z)
 {
 	mp_prop = MakeShareable(new FluidProperties());

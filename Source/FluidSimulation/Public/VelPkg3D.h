@@ -24,12 +24,13 @@
 
 #pragma once
 
+#include <Runtime/Core/Public/Templates/SharedPointer.h>
 #include "Fluid3D.h"
 #include "FluidProperties.h"
 
 // VelocityPackage3D is a container class for the Source and Destination Fluid3D objects of velocity in the 
 // x, y, and z directions.
-class VelPkg3D
+class FLUIDSIMULATION_API VelPkg3D
 {
 public:
 

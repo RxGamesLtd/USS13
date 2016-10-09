@@ -25,7 +25,7 @@
 #pragma once 
 
 // Properties common to the simulation's heat, ink, pressure, and velocity grids
-struct FluidProperties
+struct FLUIDSIMULATION_API FluidProperties
 {
 	FluidProperties()
 	{

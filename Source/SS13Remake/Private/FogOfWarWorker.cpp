@@ -66,10 +66,10 @@ void FogOfWarWorker::UpdateFowTexture(float time) const
 {
 	Manager->LastFrameTextureData = TArray<FColor>(Manager->TextureData);
 	uint32 halfTextureSize = Manager->TextureSize / 2;
-	int signedSize = static_cast<int>(Manager->TextureSize); //For convenience....
+	int32 signedSize = static_cast<int32>(Manager->TextureSize); //For convenience....
 	TSet<FVector2D> currentlyInSight;
 	TSet<FVector2D> texelsToBlur;
-	int sightTexels = Manager->SightRange * Manager->SamplesPerMeter;
+	int32 sightTexels = FMath::TruncToInt(Manager->SightRange * Manager->SamplesPerMeter);
 	float dividend = 100.0f / Manager->SamplesPerMeter;
 	const FName TraceTag(TEXT("FOW trace"));
 
@@ -85,22 +85,22 @@ void FogOfWarWorker::UpdateFowTexture(float time) const
 		FVector position = (*Itr)->GetActorLocation();
 
 		//We divide by 100.0 because 1 texel equals 1 meter of visibility-data.
-		int posX = static_cast<int>(position.X / dividend) + halfTextureSize;
-		int posY = static_cast<int>(position.Y / dividend) + halfTextureSize;
+		int32 posX = static_cast<int32>(position.X / dividend) + halfTextureSize;
+		int32 posY = static_cast<int32>(position.Y / dividend) + halfTextureSize;
 		//float integerX;
 		//float integerY;
 
 		//FVector2D fractions = FVector2D(FMath::Modf(position.X / dividend, &integerX), FMath::Modf(position.Y / dividend, &integerY));
 		FVector2D textureSpacePos = FVector2D(posX, posY);
-		int size = static_cast<int>(Manager->TextureSize);
+		int32 size = static_cast<int32>(Manager->TextureSize);
 
 		FCollisionQueryParams queryParams(FName(TEXT("FOW trace")), false, (*Itr));
-		int halfKernelSize = (Manager->blurKernelSize - 1) / 2;
+		int32 halfKernelSize = (Manager->blurKernelSize - 1) / 2;
 
 		//Store the positions we want to blur
-		for (int y = posY - sightTexels - halfKernelSize; y <= posY + sightTexels + halfKernelSize; y++)
+		for (int32 y = posY - sightTexels - halfKernelSize; y <= posY + sightTexels + halfKernelSize; y++)
 		{
-			for (int x = posX - sightTexels - halfKernelSize; x <= posX + sightTexels + halfKernelSize; x++)
+			for (int32 x = posX - sightTexels - halfKernelSize; x <= posX + sightTexels + halfKernelSize; x++)
 			{
 				if (x > 0 && x < size && y > 0 && y < size)
 				{
@@ -132,8 +132,8 @@ void FogOfWarWorker::UpdateFowTexture(float time) const
 					if (length <= sightTexels)
 					{
 						FVector currentWorldSpacePos = FVector(
-							((x - static_cast<int>(halfTextureSize))) * dividend,
-							((y - static_cast<int>(halfTextureSize))) * dividend,
+							((x - static_cast<int32>(halfTextureSize))) * dividend,
+							((y - static_cast<int32>(halfTextureSize))) * dividend,
 							position.Z);
 
 						//CONSIDER: This is NOT the most efficient way to do conditional unfogging. With long view distances and/or a lot of actors affecting the FOW-data
@@ -160,15 +160,15 @@ void FogOfWarWorker::UpdateFowTexture(float time) const
 	if (Manager->GetIsBlurEnabled())
 	{
 		//Horizontal blur pass
-		int offset = floorf(Manager->blurKernelSize / 2.0f);
+		int offset = FMath::TruncToInt(Manager->blurKernelSize / 2.0f);
 		for (auto Itr(texelsToBlur.CreateIterator()); Itr; ++Itr)
 		{
-			int x = (Itr)->IntPoint().X;
-			int y = (Itr)->IntPoint().Y;
+			int32 x = (Itr)->IntPoint().X;
+			int32 y = (Itr)->IntPoint().Y;
 			float sum = 0;
-			for (int i = 0; i < Manager->blurKernelSize; i++)
+			for (int32 i = 0; i < Manager->blurKernelSize; i++)
 			{
-				int shiftedIndex = i - offset;
+				int32 shiftedIndex = i - offset;
 				if (x + shiftedIndex >= 0 && x + shiftedIndex <= signedSize - 1)
 				{
 					if (Manager->UnfoggedData[x + shiftedIndex + (y * signedSize)] > 0.0f)
@@ -193,12 +193,12 @@ void FogOfWarWorker::UpdateFowTexture(float time) const
 		//Vertical blur pass
 		for (auto Itr(texelsToBlur.CreateIterator()); Itr; ++Itr)
 		{
-			int x = (Itr)->IntPoint().X;
-			int y = (Itr)->IntPoint().Y;
+			int32 x = (Itr)->IntPoint().X;
+			int32 y = (Itr)->IntPoint().Y;
 			float sum = 0;
-			for (int i = 0; i < Manager->blurKernelSize; i++)
+			for (int32 i = 0; i < Manager->blurKernelSize; i++)
 			{
-				int shiftedIndex = i - offset;
+				int32 shiftedIndex = i - offset;
 				if (y + shiftedIndex >= 0 && y + shiftedIndex <= signedSize - 1)
 				{
 					sum += (Manager->blurKernel[i] * Manager->HorizontalBlurData[x + (y + shiftedIndex) * signedSize]);
@@ -209,9 +209,9 @@ void FogOfWarWorker::UpdateFowTexture(float time) const
 	}
 	else
 	{
-		for (int y = 0; y < signedSize; y++)
+		for (int32 y = 0; y < signedSize; y++)
 		{
-			for (int x = 0; x < signedSize; x++)
+			for (int32 x = 0; x < signedSize; x++)
 			{
 				if (Manager->UnfoggedData[x + (y * signedSize)] > 0.0f)
 				{

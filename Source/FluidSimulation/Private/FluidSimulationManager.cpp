@@ -30,7 +30,7 @@ void FFluidSimulationManager::Start()
 bool FFluidSimulationManager::Init()
 {
 	sim = MakeShareable(new FluidSimulation3D(Size.X, Size.Y, Size.Z, 0.1f));
-	sim->Pressure()->SourceO2()->Set<FFluidSimulationManager>(this, &FFluidSimulationManager::InitDistribution);
+	sim->Pressure()->SourceO2()->Set(2000.0f);
 
 	sim->DiffusionIterations(10);
 	sim->PressureAccel(1.0f);
@@ -47,12 +47,6 @@ bool FFluidSimulationManager::Init()
 	StopTaskCounter.Reset();
 	UE_LOG(LogFluidSimulation, Log, TEXT("Atmo thread initialized"));
 	return true;
-}
-
-void FFluidSimulationManager::InitDistribution(float& arr, int32 i, int32 j, int32 k, int64 index) const
-{
-	//TODO: load from save file
-	arr = FMath::RandRange(10.0f, 2000.0f);
 }
 
 uint32 FFluidSimulationManager::Run()

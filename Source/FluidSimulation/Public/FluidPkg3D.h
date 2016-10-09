@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <Runtime/Core/Public/Templates/SharedPointerInternals.h>
 #include "Fluid3D.h"
 #include "FluidProperties.h"
 

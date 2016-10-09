@@ -5,7 +5,7 @@
 #include "Platform.h"
 #include "SharedPointer.h"
 
-class FLUIDSIMULATION_API AtmoPkg3D
+class AtmoPkg3D
 {
 public:
 

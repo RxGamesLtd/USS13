@@ -37,6 +37,22 @@
 		{
 			"Name": "UObjectPlugin",
 			"Enabled": false
+		},
+		{
+			"Name": "Paper2D",
+			"Enabled": false
+		},
+		{
+			"Name": "SlateRemote",
+			"Enabled": false
+		},
+		{
+			"Name": "SubversionSourceControl",
+			"Enabled": false
+		},
+		{
+			"Name": "OneSkyLocalizationService",
+			"Enabled": true
 		}
 	],
 	"TargetPlatforms": [

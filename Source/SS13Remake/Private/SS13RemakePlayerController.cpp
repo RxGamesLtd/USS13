@@ -4,7 +4,7 @@
 #include "SS13RemakePlayerController.h"
 #include "AI/Navigation/NavigationSystem.h"
 
-ASS13RemakePlayerController::ASS13RemakePlayerController(): bMoveToMouseCursor(0)
+ASS13RemakePlayerController::ASS13RemakePlayerController(): bMoveToMouseCursor(false)
 {
 	bShowMouseCursor = true;
 	DefaultMouseCursor = EMouseCursor::Crosshairs;
@@ -26,8 +26,8 @@ void ASS13RemakePlayerController::SetupInputComponent()
 	// set up gameplay key bindings
 	Super::SetupInputComponent();
 
-	InputComponent->BindAction("SetDestination", IE_Pressed, this, &ASS13RemakePlayerController::OnSetDestinationPressed);
-	InputComponent->BindAction("SetDestination", IE_Released, this, &ASS13RemakePlayerController::OnSetDestinationReleased);
+	InputComponent->BindAction(FName(TEXT("SetDestination")), IE_Pressed, this, &ASS13RemakePlayerController::OnSetDestinationPressed);
+	InputComponent->BindAction(FName(TEXT("SetDestination")), IE_Released, this, &ASS13RemakePlayerController::OnSetDestinationReleased);
 
 	// support touch devices 
 	InputComponent->BindTouch(EInputEvent::IE_Pressed, this, &ASS13RemakePlayerController::MoveToTouchLocation);
