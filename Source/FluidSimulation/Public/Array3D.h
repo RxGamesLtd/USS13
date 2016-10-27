@@ -27,6 +27,7 @@
 #include "FluidSimulation.h"
 #include "Platform.h"
 #include "Array.h"
+#include "Delegate.h"
 
 template <typename T>
 class TArray3D : public TArray<T, FDefaultAllocator>
@@ -162,7 +163,8 @@ public:
 
 
 	// Assignment by Subtraction - Single value
-	FORCEINLINE void operator-=(T value) {
+	FORCEINLINE void operator-=(T value) 
+	{
 		auto count = m_size;
 		while (count--)
 		{
@@ -171,7 +173,8 @@ public:
 	}
 
 	// Subtraction - arrIn values
-	FORCEINLINE TArray3D operator-(TArray3D& arrIn) {
+	FORCEINLINE TArray3D operator-(TArray3D& arrIn) 
+	{
 		TArray3D<T> result(*this);
 		result -= arrIn;
 		return result;
@@ -179,7 +182,8 @@ public:
 
 
 	// Assignment by Subtraction - arrIn values
-	FORCEINLINE void operator-=(TArray3D& arrIn) {
+	FORCEINLINE void operator-=(TArray3D& arrIn) 
+	{
 		auto count = m_size;
 		while (count--)
 		{
@@ -260,12 +264,18 @@ public:
 	}
 
 	// Set entire array to a single value
-	FORCEINLINE void Set(T initialValue) {
+	FORCEINLINE void Set(T initialValue) 
+	{
 		auto count = m_size;
 		while (count--)
 		{
 			TArray<T>::operator[](count) = initialValue;
 		}
+	}
+
+	FORCEINLINE void Set(TBaseDelegate<T, int32, int32, int32> func) 
+	{
+		func.Execute(0,0,0);
 	}
 
 protected:

@@ -29,6 +29,10 @@ Fluid3D::Fluid3D(int32 x, int32 y, int32 z) : TArray3D(x, y, z)
 {
 }
 
+Fluid3D::~Fluid3D()
+{
+}
+
 // Distribute a value to the 8 grid points surrounding the floating point coordinates
 // x,y,z must be 1 less than their associated max values (dimensions of array)
 void Fluid3D::DistributeFloatingPoint(float x, float y, float z, float value)

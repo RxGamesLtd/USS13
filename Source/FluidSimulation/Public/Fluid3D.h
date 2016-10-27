@@ -35,6 +35,8 @@ public:
 	// Constructor - Sets size of array
 	Fluid3D(int32 x, int32 y, int32 z);
 
+	virtual ~Fluid3D();
+
 	// When a point is advected it will land in Add fractions of value to the 4 neighboring grid 
 	// points of the floating point coordinates
 	void DistributeFloatingPoint(float x, float y, float z, float value);

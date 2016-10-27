@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "{AA131104-4C33-36FA-F48F-DE98378E69B1}",
+	"EngineAssociation": "",
 	"Category": "",
 	"Description": "",
 	"Modules": [
@@ -20,43 +20,5 @@
 				"Engine"
 			]
 		}
-	],
-	"Plugins": [
-		{
-			"Name": "ArchVisCharacter",
-			"Enabled": false
-		},
-		{
-			"Name": "CableComponent",
-			"Enabled": false
-		},
-		{
-			"Name": "EpicSurvey",
-			"Enabled": false
-		},
-		{
-			"Name": "UObjectPlugin",
-			"Enabled": false
-		},
-		{
-			"Name": "Paper2D",
-			"Enabled": false
-		},
-		{
-			"Name": "SlateRemote",
-			"Enabled": false
-		},
-		{
-			"Name": "SubversionSourceControl",
-			"Enabled": false
-		},
-		{
-			"Name": "OneSkyLocalizationService",
-			"Enabled": true
-		}
-	],
-	"TargetPlatforms": [
-		"LinuxNoEditor",
-		"WindowsNoEditor"
 	]
 }

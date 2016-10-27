@@ -1,3 +1,4 @@
+//#include <functional>
 #include "Public/FluidSimulation.h"
 #include "Public/FluidSimulation3D.h"
 #include "Public/FluidSimulationManager.h"
@@ -30,7 +31,11 @@ void FFluidSimulationManager::Start()
 bool FFluidSimulationManager::Init()
 {
 	sim = MakeShareable(new FluidSimulation3D(Size.X, Size.Y, Size.Z, 0.1f));
-	sim->Pressure()->SourceO2()->Set(2000.0f);
+	
+	TBaseDelegate<float, int32, int32, int32> binder;
+	binder.BindSP(this, &FFluidSimulationManager::InitializeAtmoCell);
+
+	sim->Pressure()->SourceO2()->Set(binder);
 
 	sim->DiffusionIterations(10);
 	sim->PressureAccel(1.0f);
@@ -125,4 +130,9 @@ FVector FFluidSimulationManager::GetVelocity(int32 x, int32 y, int32 z) const
 	auto val = FVector(sourceX, sourceY, sourceZ);
 
 	return val;
+}
+
+float FFluidSimulationManager::InitializeAtmoCell(int32 x, int32 y, int32 z) const
+{
+	return 0.0f;
 }

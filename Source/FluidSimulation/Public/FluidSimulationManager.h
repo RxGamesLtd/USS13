@@ -7,7 +7,7 @@
 #include "Platform.h"
 #include "SharedPointer.h"
 
-class FLUIDSIMULATION_API FFluidSimulationManager : public FRunnable
+class FLUIDSIMULATION_API FFluidSimulationManager : public TSharedFromThis<FFluidSimulationManager>, public FRunnable
 {
 public:
 	FFluidSimulationManager();
@@ -40,4 +40,7 @@ private:
 	TSharedPtr<FRunnableThread> Thread;
 	/** Stop this thread? Uses Thread Safe Counter */
 	FThreadSafeCounter StopTaskCounter;
+	
+protected:
+	float InitializeAtmoCell(int32 x, int32 y, int32 z) const;
 };

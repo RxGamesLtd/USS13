@@ -49,9 +49,9 @@ void AFogOfWarManager::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 	if (FOWTexture && LastFOWTexture && bHasFOWTextureUpdate && bIsDoneBlending)
 	{
-		LastFOWTexture->UpdateResourceW();
+		LastFOWTexture->UpdateResource();
 		UpdateTextureRegions(LastFOWTexture, static_cast<int32>(0), static_cast<uint32>(1U), textureRegions, static_cast<uint32>(4 * TextureSize), static_cast<uint32>(4U), reinterpret_cast<uint8*>(LastFrameTextureData.GetData()), false);
-		FOWTexture->UpdateResourceW();
+		FOWTexture->UpdateResource();
 		UpdateTextureRegions(FOWTexture, static_cast<int32>(0), static_cast<uint32>(1U), textureRegions, static_cast<uint32>(4 * TextureSize), static_cast<uint32>(4), reinterpret_cast<uint8*>(TextureData.GetData()), false);
 		bHasFOWTextureUpdate = false;
 		bIsDoneBlending = false;
