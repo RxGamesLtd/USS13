@@ -40,3 +40,15 @@ Build/
 *.opendb
 .tags*
 .idea
+.kdev4/
+.vscode/
+*.kdev4
+*.pro
+*.workspace
+*.pri
+CMakeLists.txt
+CMakeCache.txt
+Makefile
+CMakeFiles/
+*CodeCompletionFolders.txt
+*CodeLitePreProcessor.txt
