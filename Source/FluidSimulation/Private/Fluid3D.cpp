@@ -25,13 +25,7 @@
 #include "Public/FluidSimulation.h"
 #include "Fluid3D.h"
 
-Fluid3D::Fluid3D(int32 x, int32 y, int32 z) : TArray3D(x, y, z)
-{
-}
-
-Fluid3D::~Fluid3D()
-{
-}
+Fluid3D::Fluid3D(int32 x, int32 y, int32 z) : TArray3D(x, y, z) {};
 
 // Distribute a value to the 8 grid points surrounding the floating point coordinates
 // x,y,z must be 1 less than their associated max values (dimensions of array)

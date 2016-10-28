@@ -134,5 +134,6 @@ FVector FFluidSimulationManager::GetVelocity(int32 x, int32 y, int32 z) const
 
 float FFluidSimulationManager::InitializeAtmoCell(int32 x, int32 y, int32 z) const
 {
+	// TODO: Load from file
 	return 0.0f;
 }

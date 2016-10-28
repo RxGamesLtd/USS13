@@ -34,6 +34,19 @@ class TArray3D : public TArray<T, FDefaultAllocator>
 {
 public:
 
+	// Default Constructor - do nothing
+	TArray3D()
+		: TArray<T, FDefaultAllocator>() 
+	{
+
+	}
+
+	// Destruct array
+	virtual ~TArray3D() 
+	{
+		DestructItems(TArray<T>::GetData(), TArray<T>::ArrayNum);
+	}
+
 	// Constructor
 	TArray3D(int32 x, int32 y, int32 z)
 		: TArray<T, FDefaultAllocator>(),
@@ -275,7 +288,20 @@ public:
 
 	FORCEINLINE void Set(TBaseDelegate<T, int32, int32, int32> func) 
 	{
-		func.Execute(0,0,0);
+		int32 i = 0;
+		int32 x, y, z;
+		for (x = 0; x < m_X; ++x)
+		{
+			for (y = 0; y < m_Y; ++y)
+			{
+				for (z = 0; z < m_Z; ++z)
+				{
+					TArray<T>::operator[](i) = func.Execute(x,y,z);
+					++i;
+				}
+			}
+		}
+		
 	}
 
 protected:
