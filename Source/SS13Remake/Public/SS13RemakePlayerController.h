@@ -1,35 +1,38 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
+
 #include "GameFramework/PlayerController.h"
 #include "SS13RemakePlayerController.generated.h"
 
 UCLASS()
-class ASS13RemakePlayerController : public APlayerController
-{
-	GENERATED_BODY()
+
+class ASS13RemakePlayerController : public APlayerController {
+    GENERATED_BODY()
 
 public:
-	ASS13RemakePlayerController();
+    ASS13RemakePlayerController();
 
 protected:
-	/** True if the controlled character should navigate to the mouse cursor. */
-	uint32 bMoveToMouseCursor : 1;
+    /** True if the controlled character should navigate to the mouse cursor. */
+    uint32 bMoveToMouseCursor : 1;
 
-	// Begin PlayerController interface
-	void PlayerTick(float DeltaTime) override;
-	void SetupInputComponent() override;
-	// End PlayerController interface
+    // Begin PlayerController interface
+    void PlayerTick(float DeltaTime) override;
 
-	/** Navigate player to the current mouse cursor location. */
-	void MoveToMouseCursor();
+    void SetupInputComponent() override;
+    // End PlayerController interface
 
-	/** Navigate player to the current touch location. */
-	void MoveToTouchLocation(const ETouchIndex::Type FingerIndex, const FVector Location);
+    /** Navigate player to the current mouse cursor location. */
+    void MoveToMouseCursor();
 
-	/** Navigate player to the given world location. */
-	void SetNewMoveDestination(const FVector DestLocation);
+    /** Navigate player to the current touch location. */
+    void MoveToTouchLocation(const ETouchIndex::Type FingerIndex, const FVector Location);
 
-	/** Input handlers for SetDestination action. */
-	void OnSetDestinationPressed();
-	void OnSetDestinationReleased();
+    /** Navigate player to the given world location. */
+    void SetNewMoveDestination(const FVector DestLocation);
+
+    /** Input handlers for SetDestination action. */
+    void OnSetDestinationPressed();
+
+    void OnSetDestinationReleased();
 };

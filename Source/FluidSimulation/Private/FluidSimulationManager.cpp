@@ -1,11 +1,10 @@
-//#include <functional>
-#include "Public/FluidSimulation.h"
-#include "Public/FluidSimulation3D.h"
-#include "Public/FluidSimulationManager.h"
+#include "FluidSimulation.h"
+#include "FluidSimulation3D.h"
+#include "FluidSimulationManager.h"
 
 FFluidSimulationManager::FFluidSimulationManager()
 {
-	StopTaskCounter.Increment();
+    StopTaskCounter.Increment();
 	Size = FIntVector(1, 1, 1);
 }
 

@@ -9,38 +9,43 @@
 
 UCLASS()
 
-class SS13REMAKE_API AFogOfWarManager : public AActor
-{
+class SS13REMAKE_API AFogOfWarManager : public AActor {
     GENERATED_BODY()
 
 public:
-    AFogOfWarManager(const FObjectInitializer& FOI);
+    AFogOfWarManager(const FObjectInitializer &FOI);
+
     virtual ~AFogOfWarManager();
+
     void BeginPlay() override;
+
     void Tick(float DeltaSeconds) override;
 
     //Triggers a update in the blueprint
     UFUNCTION(BlueprintNativeEvent)
-    void OnFowTextureUpdated(UTexture2D* currentTexture, UTexture2D* lastTexture);
+
+    void OnFowTextureUpdated(UTexture2D *currentTexture, UTexture2D *lastTexture);
 
     //Register an actor to influence the FOW-texture
     UFUNCTION(BlueprintCallable, Category = FogOfWar)
-    void RegisterFowActor(AActor* Actor);
+
+    void RegisterFowActor(AActor *Actor);
 
     //Register an actor to influence the FOW-texture
     UFUNCTION(BlueprintCallable, Category = FogOfWar)
-    void UnRegisterFowActor(AActor* Actor);
+
+    void UnRegisterFowActor(AActor *Actor);
 
     //Stolen from https://wiki.unrealengine.com/Dynamic_Textures
     void UpdateTextureRegions(
-        UTexture2D* Texture,
-        int32 MipIndex,
-        uint32 NumRegions,
-        FUpdateTextureRegion2D* Regions,
-        uint32 SrcPitch,
-        uint32 SrcBpp,
-        uint8* SrcData,
-        bool bFreeData) const;
+            UTexture2D *Texture,
+            int32 MipIndex,
+            uint32 NumRegions,
+            FUpdateTextureRegion2D *Regions,
+            uint32 SrcPitch,
+            uint32 SrcBpp,
+            uint8 *SrcData,
+            bool bFreeData) const;
 
     //How far will an actor be able to see
     //CONSIDER: Place it on the actors to allow for individual sight-radius
@@ -93,13 +98,13 @@ public:
 
     //Store the actors that will be unveiling the FOW-texture.
     UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = FogOfWar)
-    TArray<AActor*> FowActors;
+    TArray<AActor *> FowActors;
 
     //DEBUG: Time it took to update the fow texture
     float fowUpdateTime = 0;
 
     //Getter for the working thread
-    bool GetIsBlurEnabled() const;
+    bool IsBlurEnabled() const;
 
 private:
     void UpdateFowTexture();
@@ -109,15 +114,15 @@ private:
 
     //Our dynamically updated texture
     UPROPERTY()
-    UTexture2D* FOWTexture;
+    UTexture2D *FOWTexture;
 
     //Texture from last update. We blend between the two to do a smooth unveiling of newly discovered areas.
     UPROPERTY()
-    UTexture2D* LastFOWTexture;
+    UTexture2D *LastFOWTexture;
 
     //Texture regions
-    FUpdateTextureRegion2D* textureRegions;
+    FUpdateTextureRegion2D *textureRegions;
 
     //Our fowupdatethread
-    FogOfWarWorker* FowThread;
+    FogOfWarWorker *FowThread;
 };

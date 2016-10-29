@@ -28,14 +28,13 @@
 #include "Platform.h"
 
 // Adds fluid specific functions to class Array3D
-class Fluid3D : public TArray3D<float>
-{
+class Fluid3D : public TArray3D<float> {
 public:
 
-	// Constructor - Sets size of array
-	Fluid3D(int32 x, int32 y, int32 z);
+    // Constructor - Sets size of array
+    Fluid3D(int32 x, int32 y, int32 z);
 
-	// When a point is advected it will land in Add fractions of value to the 4 neighboring grid 
-	// points of the floating point coordinates
-	void DistributeFloatingPoint(float x, float y, float z, float value);
+    // When a point is advected it will land in Add fractions of value to the 4 neighboring grid
+    // points of the floating point coordinates
+    void DistributeFloatingPoint(float x, float y, float z, float value);
 };

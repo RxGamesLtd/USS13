@@ -9,33 +9,35 @@ class AFogOfWarManager;
 
 #define ECC_SightStatic ECC_GameTraceChannel2
 
-class SS13REMAKE_API FogOfWarWorker : public FRunnable
-{
+class SS13REMAKE_API FogOfWarWorker : public FRunnable {
 public:
-	explicit FogOfWarWorker(AFogOfWarManager* manager);
-	virtual ~FogOfWarWorker();
+    explicit FogOfWarWorker(AFogOfWarManager *manager);
 
-	//FRunnable interface
-	bool Init() override;
-	uint32 Run() override;
-	void Stop() override;
+    virtual ~FogOfWarWorker();
 
-	//Method to perform work
-	void UpdateFowTexture(float time) const;
+    //FRunnable interface
+    bool Init() override;
 
-	bool bShouldUpdate = false;
+    uint32 Run() override;
 
-	void ShutDown();
+    void Stop() override;
+
+    //Method to perform work
+    void UpdateFowTexture(float time) const;
+
+    bool bShouldUpdate = false;
+
+    void ShutDown();
 
 private:
-	//Thread to run the FRunnable on
-	FRunnableThread* Thread;
+    //Thread to run the FRunnable on
+    FRunnableThread *Thread;
 
-	//Pointer to our manager
-	AFogOfWarManager* Manager;
+    //Pointer to our manager
+    AFogOfWarManager *Manager;
 
-	//Thread safe counter 
-	FThreadSafeCounter StopTaskCounter;
+    //Thread safe counter
+    FThreadSafeCounter StopTaskCounter;
 
-	float TimeTillLastTick;
+    float TimeTillLastTick;
 };
