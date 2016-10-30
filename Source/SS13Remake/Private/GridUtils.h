@@ -16,8 +16,8 @@
 
 #pragma once
 
-#include <Runtime/Core/Public/Math/IntVector.h>
-#include <Runtime/Core/Public/Templates/SharedPointer.h>
+#include <IntVector.h>
+#include <SharedPointer.h>
 #include "GridUtils.generated.h"
 
 class AWorldGrid;
