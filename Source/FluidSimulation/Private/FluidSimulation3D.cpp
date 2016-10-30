@@ -35,8 +35,7 @@ FluidSimulation3D::FluidSimulation3D(int32 xSize, int32 ySize, int32 zSize, floa
     mp_pressure = MakeShareable(new AtmoPkg3D(xSize, ySize, zSize));
     mp_ink = MakeShareable(new FluidPkg3D(xSize, ySize, zSize));
     mp_heat = MakeShareable(new FluidPkg3D(xSize, ySize, zSize));
-    m_solids = MakeShareable(new TArray<bool>());
-    m_solids->SetNum(xSize * ySize * zSize);
+    m_solids = MakeShareable(new TArray3D<bool>(xSize, ySize, zSize));
 
     Reset();
 }
@@ -1172,7 +1171,7 @@ bool FluidSimulation3D::IsSolid(int32 this_x, int32 this_y, int32 this_z) const 
     if (this_x / 2 == 1 && this_y / 2 == 1 && this_z / 2 == 1) {
         //its a cell
     }
-    return m_solids->GetData()[this_x + m_size_x * (this_y + m_size_y * this_z)];
+    return m_solids->element(this_x, this_y, this_z);
 }
 
 // Apply acceleration due to pressure

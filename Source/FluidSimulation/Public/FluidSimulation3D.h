@@ -90,7 +90,7 @@ public:
 
 protected:
     // Solids
-    TSharedPtr<TArray<bool>, ESPMode::ThreadSafe> m_solids;
+    TSharedPtr<TArray3D<bool>, ESPMode::ThreadSafe> m_solids;
     // Fluid objects
     TSharedPtr<Fluid3D, ESPMode::ThreadSafe> m_curl;
     TSharedPtr<VelPkg3D, ESPMode::ThreadSafe> mp_velocity;
