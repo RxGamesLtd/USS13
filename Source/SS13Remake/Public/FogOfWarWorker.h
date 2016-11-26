@@ -39,6 +39,8 @@ public:
     //Method to perform work
     void UpdateFowTexture(float time) const;
 
+    void UpdateFowTextureFromCamera(float time) const;
+
     bool bShouldUpdate = false;
 
     void ShutDown();
@@ -54,4 +56,6 @@ private:
     FThreadSafeCounter StopTaskCounter;
 
     float TimeTillLastTick;
+	
+	void DrawUnveilShape(FVector2D observerTexLoc, TSet<FVector2D> sightShape) const;
 };

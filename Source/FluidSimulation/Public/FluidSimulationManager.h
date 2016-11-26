@@ -25,38 +25,38 @@
 
 class FLUIDSIMULATION_API FFluidSimulationManager : public TSharedFromThis<FFluidSimulationManager>, public FRunnable {
 public:
-    FFluidSimulationManager();
+	FFluidSimulationManager();
 
-    ~FFluidSimulationManager();
+	~FFluidSimulationManager();
 
-    FIntVector Size;
+	FIntVector Size;
 
-    void SetSize(FVector size);
+	void SetSize(FVector size);
 
-    void Start();
+	void Start();
 
-    bool IsStarted() const {
-        return StopTaskCounter.GetValue() == 0;
-    }
+	bool IsStarted() const {
+		return StopTaskCounter.GetValue() == 0;
+	}
 
-    bool Init() override;
+	bool Init() override;
 
-    uint32 Run() override;
+	uint32 Run() override;
 
-    void Stop() override;
+	void Stop() override;
 
-    FAtmoStruct GetValue(int32 x, int32 y, int32 z) const;
+	FAtmoStruct GetValue(int32 x, int32 y, int32 z) const;
 
-    FVector GetVelocity(int32 x, int32 y, int32 z) const;
+	FVector GetVelocity(int32 x, int32 y, int32 z) const;
 
 private:
-    /** SimulationObject */
-    TSharedPtr<FluidSimulation3D, ESPMode::ThreadSafe> sim;
-    /** Thread to run the worker FRunnable on */
-    TSharedPtr<FRunnableThread> Thread;
-    /** Stop this thread? Uses Thread Safe Counter */
-    FThreadSafeCounter StopTaskCounter;
+	/** SimulationObject */
+	TSharedPtr<FluidSimulation3D, ESPMode::ThreadSafe> sim;
+	/** Thread to run the worker FRunnable on */
+	TSharedPtr<FRunnableThread> Thread;
+	/** Stop this thread? Uses Thread Safe Counter */
+	FThreadSafeCounter StopTaskCounter;
 
 protected:
-    float InitializeAtmoCell(int32 x, int32 y, int32 z) const;
+	float InitializeAtmoCell(int32 x, int32 y, int32 z) const;
 };

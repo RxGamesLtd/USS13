@@ -33,32 +33,32 @@
 class FluidPkg3D {
 public:
 
-    // Constructor - Initilizes source and destination FLuid3D objects
-    FluidPkg3D(int32 xSize, int32 ySize, int32 zSize);
+	// Constructor - Initilizes source and destination FLuid3D objects
+	FluidPkg3D(int32 xSize, int32 ySize, int32 zSize);
 
-    // Assignment Operator
-    FluidPkg3D &operator=(const FluidPkg3D &right);
+	// Assignment Operator
+	FluidPkg3D& operator=(const FluidPkg3D& right);
 
-    // Swap the source and destination objects
-    void SwapLocations();
+	// Swap the source and destination objects
+	void SwapLocations();
 
-    // Reset the source and destination objects to specified value
-    void Reset(float v) const;
+	// Reset the source and destination objects to specified value
+	void Reset(float v) const;
 
-    // Accessors
-    TSharedPtr<Fluid3D, ESPMode::ThreadSafe> Source() const;
+	// Accessors
+	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> Source() const;
 
-    TSharedPtr<Fluid3D, ESPMode::ThreadSafe> Destination() const;
+	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> Destination() const;
 
-    TSharedPtr<FluidProperties, ESPMode::ThreadSafe> Properties() const;
+	TSharedPtr<FluidProperties, ESPMode::ThreadSafe> Properties() const;
 
 private:
-    TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_source; // source
-    TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_dest; // destination
+	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_source; // source
+	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_dest; // destination
 
-    TSharedPtr<FluidProperties, ESPMode::ThreadSafe> mp_prop; // defines properties of fluid
+	TSharedPtr<FluidProperties, ESPMode::ThreadSafe> mp_prop; // defines properties of fluid
 
-    int32 m_X; // x dimension
-    int32 m_Y; // y dimension
-    int32 m_Z; // z dimension
+	int32 m_X; // x dimension
+	int32 m_Y; // y dimension
+	int32 m_Z; // z dimension
 };

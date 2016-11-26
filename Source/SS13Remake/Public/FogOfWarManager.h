@@ -112,7 +112,7 @@ public:
 
     //Store the actors that will be unveiling the FOW-texture.
     UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = FogOfWar)
-    TArray<AActor *> FowActors;
+    TArray<AActor *> Observers;
 
     //DEBUG: Time it took to update the fow texture
     float fowUpdateTime = 0;
@@ -121,8 +121,6 @@ public:
     bool IsBlurEnabled() const;
 
 private:
-    void UpdateFowTexture();
-
     //Triggers the start of a new FOW-texture-update
     void StartFOWTextureUpdate();
 
