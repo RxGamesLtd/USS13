@@ -38,7 +38,7 @@ public:
     //Triggers a update in the blueprint
     UFUNCTION(BlueprintNativeEvent)
 
-    void OnFowTextureUpdated(UTexture2D *currentTexture, UTexture2D *lastTexture);
+    void OnFowTextureUpdated(UTexture2D *currentTexture, UTexture2D *lastTexture, FVector cameraLocation, FVector lastCameraLocation);
 
     //Register an actor to influence the FOW-texture
     UFUNCTION(BlueprintCallable, Category = FogOfWar)
@@ -99,6 +99,13 @@ public:
     //Our texture data from the last frame
     UPROPERTY()
     TArray<FColor> LastFrameTextureData;
+
+	//Texture rendered for this position
+	UPROPERTY()
+	FVector CameraPosition;
+
+	UPROPERTY()
+	FVector LastCameraPosition;
 
     //Check to see if we have a new FOW-texture.
     bool bHasFOWTextureUpdate = false;

@@ -58,4 +58,6 @@ private:
     float TimeTillLastTick;
 	
 	void DrawUnveilShape(FVector2D observerTexLoc, TSet<FVector2D> sightShape) const;
+
+	void FloodFill(int x, int y) const;
 };

@@ -52,7 +52,13 @@ uint32 FogOfWarWorker::Run() {
 
 		if (!Manager->bHasFOWTextureUpdate) {
 			auto time = Manager->GetWorld()->TimeSeconds;
-			UpdateFowTextureFromCamera(Manager->GetWorld()->TimeSince(TimeTillLastTick));
+			//UE_LOG(LogSS13Remake, Log, TEXT("Fog start update."));
+			auto delta = Manager->GetWorld()->TimeSince(TimeTillLastTick);
+			UpdateFowTextureFromCamera(delta);
+			//UE_LOG(LogSS13Remake, Log, TEXT("Fog updated! Ms:{0}"), delta);
+			if (!Manager || !Manager->GetWorld()) {
+				return 0;
+			}
 			Manager->fowUpdateTime = Manager->GetWorld()->TimeSince(time);
 		}
 
@@ -76,7 +82,7 @@ void FogOfWarWorker::UpdateFowTexture(float time) const {
 	TSet<FVector2D> texelsToBlur;
 	int32 sightTexels = FMath::TruncToInt(Manager->SightRange * Manager->SamplesPerMeter);
 	float dividend = 100.0f / Manager->SamplesPerMeter;
-	const FName TraceTag(TEXT("FOW trace"));
+	const FName TraceTag(TEXT("FOWTrace"));
 
 	const auto PC = Manager->GetWorld()->GetFirstPlayerController();
 
@@ -231,6 +237,7 @@ void FogOfWarWorker::UpdateFowTexture(float time) const {
 void FogOfWarWorker::UpdateFowTextureFromCamera(float time) const {
 
 	Manager->LastFrameTextureData = TArray<FColor>(Manager->TextureData);
+	Manager->LastCameraPosition = FVector(Manager->CameraPosition);
 
 	TSet<FVector2D> currentlyInSight;
 
@@ -240,13 +247,22 @@ void FogOfWarWorker::UpdateFowTextureFromCamera(float time) const {
 	// First PC is local player on client
 	const auto PC = Manager->GetWorld()->GetFirstPlayerController();
 
+	if (!PC)
+		return;
+
 	// Get viewport size
 	int32 viewSizeX, viewSizeY;
 	PC->GetViewportSize(viewSizeX, viewSizeY);
 
+	// Cache camera location
+	Manager->CameraPosition = FVector(PC->PlayerCameraManager->GetCameraLocation());
+
+	// Alias texture size
 	auto textureSize = static_cast<int32>(Manager->TextureSize);
 
+	// Debug stuff
 	const FName TraceTag(TEXT("FOWTrace"));
+	Manager->GetWorld()->DebugDrawTraceTag = TraceTag;
 
 	//forget about old positions
 	for (auto& dta : Manager->UnfoggedData) {
@@ -272,32 +288,40 @@ void FogOfWarWorker::UpdateFowTextureFromCamera(float time) const {
 		observerTexLoc.Y /= viewSizeY;
 		observerTexLoc *= textureSize;
 
-		FCollisionQueryParams queryParams(TraceTag, false, (*Itr));
-
+		FCollisionQueryParams queryParams(TraceTag, true, (*Itr));
+		
 		TSet<FVector2D> sightShape;
 
-		for (float i = 0; i < 2 * PI; i += HALF_PI / 8.0f) {
+		for (float i = 0; i < 2 * PI; i += HALF_PI / 100.0f) {
 			auto x = Manager->SightRange * FMath::Cos(i) + observerLocation.X;
 			auto y = Manager->SightRange * FMath::Sin(i) + observerLocation.Y;
 
 			FVector sightLoc = FVector(x, y, observerLocation.Z);
 
 			FHitResult hit;
-			Manager->GetWorld()->LineTraceSingleByChannel(hit, observerLocation, sightLoc, ECC_SightStatic, queryParams);
+			if (Manager->GetWorld()->LineTraceSingleByChannel(hit, observerLocation, sightLoc, ECC_SightStatic, queryParams))
+				sightLoc = hit.Location;
 
 			FVector2D hitTexLoc;
-			PC->ProjectWorldLocationToScreen(hit.Location, hitTexLoc);
+			if (PC->ProjectWorldLocationToScreen(sightLoc, hitTexLoc)) {
+				// Translate to Texture space
+				hitTexLoc.X /= viewSizeX;
+				hitTexLoc.Y /= viewSizeY;
+				hitTexLoc *= textureSize;
+				
+				if (hitTexLoc.X < 0 || hitTexLoc.X >= textureSize || hitTexLoc.Y < 0 || hitTexLoc.Y >= textureSize)
+					continue;
 
-			// Translate to Texture space
-			hitTexLoc.X /= viewSizeX;
-			hitTexLoc.Y /= viewSizeY;
-			hitTexLoc *= textureSize;
-
-			sightShape.Add(hitTexLoc);
+				sightShape.Add(hitTexLoc);
+			}
 		}
-
+		//UE_LOG(LogSS13Remake, Log, TEXT("Fog sights checked."));
 		// draw a unveil shape
 		DrawUnveilShape(observerTexLoc, sightShape);
+		//UE_LOG(LogSS13Remake, Log, TEXT("Fog bound drawn."));
+		//flood fill area
+		//FloodFill(observerTexLoc.X, observerTexLoc.Y);
+		//UE_LOG(LogSS13Remake, Log, TEXT("Fog sights filled."));
 	}
 
 	for (int32 y = 0; y < textureSize; ++y) {
@@ -329,13 +353,17 @@ void FogOfWarWorker::UpdateFowTextureFromCamera(float time) const {
 void FogOfWarWorker::DrawUnveilShape(FVector2D observerTexLoc, TSet<FVector2D> sightShape) const {
 	const auto textureSize = static_cast<int32>(Manager->TextureSize);
 
-	for (auto point : sightShape) {
+	auto points = sightShape.Array();
+	for (auto i = 0; i < points.Num(); ++i) {
+		auto point = points[i];
+		//auto next = points[(i + 1) % points.Num()];
+		auto next = observerTexLoc;
 		// Bresenham's line algorithm
 		// https://rosettacode.org/wiki/Bitmap/Bresenham%27s_line_algorithm#C.2B.2B
 		float x1 = point.X;
 		float y1 = point.Y;
-		float x2 = observerTexLoc.X;
-		float y2 = observerTexLoc.Y;
+		float x2 = next.X;
+		float y2 = next.Y;
 		const bool steep = FMath::Abs(y2 - y1) > FMath::Abs(x2 - x1);
 		if (steep) {
 			//std::swap(x1, y1);
@@ -368,14 +396,22 @@ void FogOfWarWorker::DrawUnveilShape(FVector2D observerTexLoc, TSet<FVector2D> s
 
 		const int32 maxX = FMath::TruncToInt(x2);
 
+		const int32 brushSize = 5;
+
 		for (int32 x = FMath::TruncToInt(x1); x < maxX; x++) {
 			if (steep) {
 				//Unveil the positions we are currently seeing
-				Manager->UnfoggedData[y + x * textureSize] = 1.0f;
+				for(auto offX = -brushSize ; offX < brushSize; ++offX)
+					for (auto offY = -brushSize; offY < brushSize; ++offY)
+						if (x + offY >= 0 && x + offY < textureSize && y + offX >= 0 && y + offX < textureSize)
+							Manager->UnfoggedData[y + offX + (x + offY) * textureSize] = 1.0f;
 			}
 			else {
 				//Unveil the positions we are currently seeing
-				Manager->UnfoggedData[x + y * textureSize] = 1.0f;
+				for (auto offX = -brushSize; offX < brushSize; ++offX)
+					for (auto offY = -brushSize; offY < brushSize; ++offY)
+						if (x + offX >= 0 && x + offX < textureSize && y + offY >= 0 && y + offY < textureSize)
+							Manager->UnfoggedData[x + offX + (y + offY) * textureSize] = 1.0f;
 			}
 
 			error -= dy;
@@ -385,4 +421,59 @@ void FogOfWarWorker::DrawUnveilShape(FVector2D observerTexLoc, TSet<FVector2D> s
 			}
 		}
 	}
+}
+
+void FogOfWarWorker::FloodFill(int x, int y) const
+{
+	const auto textureSize = static_cast<int32>(Manager->TextureSize);
+
+	if (x < 0 || x >= textureSize || y < 0 || y >= textureSize)
+		return;
+
+	// Recursive
+	//auto& current = Manager->UnfoggedData[x + y * textureSize];
+	//if (!FMath::IsNearlyEqual(current, 1.0f))
+	//{
+	//	current = 1.0f;
+	//	FloodFill(x + 1, y);
+	//	FloodFill(x - 1, y);
+	//	FloodFill(x, y + 1);
+	//	FloodFill(x, y - 1);
+	//}
+
+	//Flood-fill (node, target-color, replacement-color):
+	//1. If target - color is equal to replacement - color, return.
+	//2. If color of node is not equal to target - color, return.
+	if (FMath::IsNearlyEqual(Manager->UnfoggedData[x + y * textureSize], 1.0f)) return;
+	//3. Set Q to the empty queue.
+	TQueue<FIntVector> Q;
+	//4. Add node to Q.
+	Q.Enqueue(FIntVector(x, y, 0));
+
+	FIntVector N;
+	//5. For each element N of Q :
+	while (Q.Dequeue(N)) {
+		//6.         Set w and e equal to N.
+		auto w = N, e = N;
+		//7.         Move w to the west until the color of the node to the west of w no longer matches target - color.
+		while (w.X - 1 > 0 && !FMath::IsNearlyEqual(Manager->UnfoggedData[w.X - 1 + w.Y * textureSize], 1.0f))
+			w.X--;
+		//8.         Move e to the east until the color of the node to the east of e no longer matches target - color.
+		while (e.X + 1 < textureSize && !FMath::IsNearlyEqual(Manager->UnfoggedData[e.X + 1 + e.Y * textureSize], 1.0f))
+			e.X++;
+		//9.         For each node n between w and e :
+		for (auto i = w.X; i <= e.X; ++i) {
+			FIntVector n(i, N.Y, 0);
+			//10.             Set the color of n to replacement - color.
+			Manager->UnfoggedData[n.X + n.Y * textureSize] = 1.0f;
+			//11.             If the color of the node to the north of n is target - color, add that node to Q.
+			if (n.Y + 1 < textureSize && !FMath::IsNearlyEqual(Manager->UnfoggedData[n.X + (n.Y + 1) * textureSize], 1.0f))
+				Q.Enqueue(FIntVector(n.X, n.Y + 1, 0));
+			//12.             If the color of the node to the south of n is target - color, add that node to Q.
+			if (n.Y - 1 > 0 && !FMath::IsNearlyEqual(Manager->UnfoggedData[n.X + (n.Y - 1) * textureSize], 1.0f))
+				Q.Enqueue(FIntVector(n.X, n.Y - 1, 0));
+		}
+		//13. Continue looping until Q is exhausted.
+	}
+	//14. Return.
 }

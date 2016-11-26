@@ -63,6 +63,10 @@ void AFogOfWarManager::Tick(float DeltaSeconds) {
 	Super::Tick(DeltaSeconds);
 
 	if (FOWTexture && LastFOWTexture && bHasFOWTextureUpdate && bIsDoneBlending) {
+		// Set initial state
+		bHasFOWTextureUpdate = false;
+		bIsDoneBlending = false;
+
 		auto srcPitch = 4U * TextureSize;
 		auto* srcData = reinterpret_cast<uint8*>(LastFrameTextureData.GetData());
 
@@ -72,11 +76,8 @@ void AFogOfWarManager::Tick(float DeltaSeconds) {
 		FOWTexture->UpdateResource();
 		UpdateTextureRegions(FOWTexture, 0, 1U, textureRegions, srcPitch, 4U, srcData, false);
 
-		// Set initial state
-		bHasFOWTextureUpdate = false;
-		bIsDoneBlending = false;
 		//Trigger the blueprint update
-		OnFowTextureUpdated(FOWTexture, LastFOWTexture);
+		OnFowTextureUpdated(FOWTexture, LastFOWTexture, CameraPosition, LastCameraPosition);
 	}
 }
 
@@ -99,7 +100,7 @@ void AFogOfWarManager::StartFOWTextureUpdate() {
 	}
 }
 
-void AFogOfWarManager::OnFowTextureUpdated_Implementation(UTexture2D* currentTexture, UTexture2D* lastTexture) {
+void AFogOfWarManager::OnFowTextureUpdated_Implementation(UTexture2D* currentTexture, UTexture2D* lastTexture, FVector cameraLocation, FVector lastCameraLocation) {
 	//Handle in blueprint
 }
 
