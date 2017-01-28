@@ -1,5 +1,5 @@
 // The MIT License (MIT)
-// Copyright (c) 2016 RxCompile
+// Copyright (c) 2017 RxCompile
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 // documentation files (the "Software"), to deal in the Software without restriction, including without limitation
@@ -35,17 +35,30 @@ void FFluidSimulationManager::SetSize(FVector size) {
 }
 
 void FFluidSimulationManager::Start() {
-	Thread = MakeShareable(FRunnableThread::Create(this, TEXT("FFluidSimulationManager"), 0,
-	                                               TPri_Normal)); //windows default = 8mb for thread, could specify more
+	Thread = MakeShareable(FRunnableThread::Create(this, TEXT("FFluidSimulationManager")));
 }
 
 bool FFluidSimulationManager::Init() {
 	sim = MakeShareable(new FluidSimulation3D(Size.X, Size.Y, Size.Z, 0.1f));
+	UE_LOG(LogFluidSimulation, Log, TEXT("Atmo thread init start"));
 
 	TBaseDelegate<float, int32, int32, int32> binder;
-	binder.BindSP(this, &FFluidSimulationManager::InitializeAtmoCell);
 
+	binder.BindSP(this, &FFluidSimulationManager::InitializeAtmoCell, static_cast<uint32>(0));
 	sim->Pressure()->SourceO2()->Set(binder);
+	UE_LOG(LogFluidSimulation, Log, TEXT("Atmo O2 values loaded"));
+
+	binder.BindSP(this, &FFluidSimulationManager::InitializeAtmoCell, static_cast<uint32>(1));
+	sim->Pressure()->SourceN2()->Set(binder);
+	UE_LOG(LogFluidSimulation, Log, TEXT("Atmo N2 values loaded"));
+
+	binder.BindSP(this, &FFluidSimulationManager::InitializeAtmoCell, static_cast<uint32>(2));
+	sim->Pressure()->SourceCO2()->Set(binder);
+	UE_LOG(LogFluidSimulation, Log, TEXT("Atmo CO2 values loaded"));
+
+	binder.BindSP(this, &FFluidSimulationManager::InitializeAtmoCell, static_cast<uint32>(3));
+	sim->Pressure()->SourceToxin()->Set(binder);
+	UE_LOG(LogFluidSimulation, Log, TEXT("Atmo Toxin values loaded"));
 
 	sim->DiffusionIterations(10);
 	sim->PressureAccel(1.0f);
@@ -69,17 +82,12 @@ uint32 FFluidSimulationManager::Run() {
 	FPlatformProcess::Sleep(0.03);
 	UE_LOG(LogFluidSimulation, Log, TEXT("Atmo thread started"));
 
-	//While not told to stop this thread
-	//		and not yet finished finding Prime Numbers
 	while (StopTaskCounter.GetValue() == 0) {
 		if (!sim.IsValid()) break;
 
 		sim->Update();
-
-		//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		//prevent thread from using too many resources
 		FPlatformProcess::Sleep(0.1f);
-		//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	}
 	UE_LOG(LogFluidSimulation, Log, TEXT("Atmo thread is exited"));
 	StopTaskCounter.Reset();
@@ -137,7 +145,7 @@ FVector FFluidSimulationManager::GetVelocity(int32 x, int32 y, int32 z) const {
 	return val;
 }
 
-float FFluidSimulationManager::InitializeAtmoCell(int32 x, int32 y, int32 z) const {
+float FFluidSimulationManager::InitializeAtmoCell(int32 x, int32 y, int32 z, uint32 type) const {
 	// TODO: Load from file
 	return 0.0f;
 }

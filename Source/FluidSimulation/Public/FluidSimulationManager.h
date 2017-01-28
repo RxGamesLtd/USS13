@@ -1,5 +1,5 @@
 // The MIT License (MIT)
-// Copyright (c) 2016 RxCompile
+// Copyright (c) 2017 RxCompile
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 // documentation files (the "Software"), to deal in the Software without restriction, including without limitation
@@ -18,8 +18,6 @@
 
 #include "FluidSimulation3D.h"
 #include "AtmoStruct.h"
-#include "ThreadingBase.h"
-#include "Object.h"
 #include "Platform.h"
 #include "SharedPointer.h"
 
@@ -58,5 +56,5 @@ private:
 	FThreadSafeCounter StopTaskCounter;
 
 protected:
-	float InitializeAtmoCell(int32 x, int32 y, int32 z) const;
+	float InitializeAtmoCell(int32 x, int32 y, int32 z, uint32 type) const;
 };

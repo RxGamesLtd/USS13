@@ -27,7 +27,6 @@
 #include "FluidPkg3D.h"
 #include "AtmoPkg3D.h"
 #include "VelPkg3D.h"
-#include "FluidSimulation3D.h"
 #include "FluidSimulation.h"
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("AtmosUpdatesCount"), STAT_AtmosUpdatesCount, STATGROUP_AtmosStats, FLUIDSIMULATION_API);
@@ -58,10 +57,6 @@ public:
 	TSharedPtr<VelPkg3D, ESPMode::ThreadSafe> Velocity() const;
 
 	TSharedPtr<AtmoPkg3D, ESPMode::ThreadSafe> Pressure() const;
-
-	TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> Ink() const;
-
-	TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> Heat() const;
 
 	// Fluid property accessors
 	int32 DiffusionIterations() const;
@@ -95,8 +90,6 @@ protected:
 	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> m_curl;
 	TSharedPtr<VelPkg3D, ESPMode::ThreadSafe> mp_velocity;
 	TSharedPtr<AtmoPkg3D, ESPMode::ThreadSafe> mp_pressure; // equivalent to density
-	TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> mp_ink; // ink is one fluid suspended in another, like smoke in air
-	TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> mp_heat;
 
 	// Fluid properties
 	int32 m_diffusionIter; // diffusion cycles per call to Update()
@@ -108,9 +101,6 @@ protected:
 	int32 m_size_z; // depth of the simulation
 
 private:
-	// Apply heat as a diffusion step in 3D
-	void Heat(float scale) const;
-
 	// Forward advection moves the value at each grid point forward along the velocity field
 	// and dissipates it between the four nearest ending points, values are scaled to be > 0
 	// Drawback: Does not handle the dissipation of single cells of pressure (or lines of cells)

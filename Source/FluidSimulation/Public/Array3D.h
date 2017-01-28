@@ -34,7 +34,7 @@ class TArray3D {
 public:
 
 	// Default Constructor - do nothing
-	TArray3D() { }
+	TArray3D(): m_X(0), m_Y(0), m_Z(0), m_size(0) { }
 
 	// Destruct array
 	virtual ~TArray3D() { }

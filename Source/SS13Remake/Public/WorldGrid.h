@@ -1,5 +1,5 @@
 // The MIT License (MIT)
-// Copyright (c) 2016 RxCompile
+// Copyright (c) 2017 RxCompile
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 // documentation files (the "Software"), to deal in the Software without restriction, including without limitation
@@ -16,13 +16,13 @@
 
 #pragma once
 
+#include "FluidSimulation.h"
 #include "Private/GridUtils.h"
-#include "FluidSimulationManager.h"
 #include "AtmoStruct.h"
+#include "FluidSimulationManager.h"
 #include "WorldGrid.generated.h"
 
 UCLASS()
-
 class SS13REMAKE_API AWorldGrid : public AActor {
     GENERATED_BODY()
 

@@ -1,5 +1,5 @@
 // The MIT License (MIT)
-// Copyright (c) 2016 RxCompile
+// Copyright (c) 2017 RxCompile
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 // documentation files (the "Software"), to deal in the Software without restriction, including without limitation
@@ -82,7 +82,7 @@ public:
     float SecondsToForget = 1.0f;
 
     //The size of our textures
-    uint32 TextureSize = 1024;
+    uint32 TextureSize = 256;
 
     //Array containing what parts of the map we've unveiled.
     UPROPERTY()

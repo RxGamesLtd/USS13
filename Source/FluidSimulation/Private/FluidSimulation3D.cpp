@@ -28,13 +28,10 @@
 DEFINE_STAT(STAT_AtmosUpdatesCount);
 
 FluidSimulation3D::FluidSimulation3D(int32 xSize, int32 ySize, int32 zSize, float dt)
-	: m_diffusionIter(1), m_vorticity(0.0), m_pressureAccel(0.0), m_dt(dt), m_size_x(xSize), m_size_y(ySize),
-	  m_size_z(zSize) {
+	: m_diffusionIter(1), m_vorticity(0.0), m_pressureAccel(0.0), m_dt(dt), m_size_x(xSize), m_size_y(ySize), m_size_z(zSize) {
 	m_curl = MakeShareable(new Fluid3D(xSize, ySize, zSize));
 	mp_velocity = MakeShareable(new VelPkg3D(xSize, ySize, zSize));
 	mp_pressure = MakeShareable(new AtmoPkg3D(xSize, ySize, zSize));
-	mp_ink = MakeShareable(new FluidPkg3D(xSize, ySize, zSize));
-	mp_heat = MakeShareable(new FluidPkg3D(xSize, ySize, zSize));
 	m_solids = MakeShareable(new TArray3D<bool>(xSize, ySize, zSize));
 
 	Reset();
@@ -76,78 +73,10 @@ void FluidSimulation3D::UpdateDiffusion() const {
 			mp_pressure->SwapLocations();
 		}
 	}
-
-	// Diffusion of Heat
-	if (!FMath::IsNearlyZero(mp_heat->Properties()->diffusion)) {
-		const float scaledHeat = mp_heat->Properties()->diffusion / static_cast<float>(m_diffusionIter);
-		for (int32 i = 0; i < m_diffusionIter; i++) {
-			Diffusion(mp_heat->Source(), mp_heat->Destination(), scaledHeat);
-			mp_heat->SwapLocations();
-		}
-	}
-
-	// Diffusion of Ink
-	if (!FMath::IsNearlyZero(mp_ink->Properties()->diffusion)) {
-		const float scaledInk = mp_ink->Properties()->diffusion / static_cast<float>(m_diffusionIter);
-
-		for (int32 i = 0; i < m_diffusionIter; i++) {
-			Diffusion(mp_ink->Source(), mp_ink->Destination(), scaledInk);
-			mp_ink->SwapLocations();
-		}
-	}
-}
-
-// Apply the effects of heat to the velocity grid
-void FluidSimulation3D::Heat(float scale) const {
-	const auto force = m_dt * scale;
-
-	*mp_velocity->DestinationX() = *mp_velocity->SourceX();
-	*mp_velocity->DestinationY() = *mp_velocity->SourceY();
-	*mp_velocity->DestinationZ() = *mp_velocity->SourceZ();
-
-	for (int32 x = 0; x < m_size_x - 1; x++) {
-		for (int32 y = 0; y < m_size_y - 1; y++) {
-			for (int32 z = 0; z < m_size_z - 1; z++) {
-				// Pressure differential between points to get an accelleration force.
-				auto force_x = mp_heat->Source()->element(x, y, z) - mp_heat->Source()->element(x + 1, y, z);
-				auto force_y = mp_heat->Source()->element(x, y, z) - mp_heat->Source()->element(x, y + 1, z);
-				auto force_z = mp_heat->Source()->element(x, y, z) - mp_heat->Source()->element(x, y, z + 1);
-
-				// Use the acceleration force to move the velocity field in the appropriate direction.
-				// Ex. If an area of high pressure exists the acceleration force will turn the velocity field
-				// away from this area
-				mp_velocity->DestinationX()->element(x, y, z) += force * force_x;
-				mp_velocity->DestinationX()->element(x + 1, y, z) += force * force_x;
-
-				mp_velocity->DestinationY()->element(x, y, z) += force * force_y;
-				mp_velocity->DestinationY()->element(x, y + 1, z) += force * force_y;
-
-				mp_velocity->DestinationZ()->element(x, y, z) += force * force_z;
-				mp_velocity->DestinationZ()->element(x, y, z + 1) += force * force_z;
-			}
-		}
-	}
-
-	mp_velocity->SwapLocationsX();
-	mp_velocity->SwapLocationsY();
-	mp_velocity->SwapLocationsZ();
 }
 
 // Apply forces across the grids
 void FluidSimulation3D::UpdateForces() const {
-	// Apply upwards force on velocity from ink rising under its own steam
-	if (!FMath::IsNearlyZero(mp_ink->Properties()->force)) {
-		*mp_velocity->SourceY() += *mp_ink->Source() * mp_ink->Properties()->force;
-	}
-
-	// Apply upwards force on velocity field from heat
-	if (!FMath::IsNearlyZero(mp_heat->Properties()->force)) {
-		Heat(mp_heat->Properties()->force);
-
-		if (!FMath::IsNearlyZero(mp_heat->Properties()->decay)) {
-			ExponentialDecay(mp_heat->Source(), mp_heat->Properties()->decay);
-		}
-	}
 
 	// Apply dampening force on velocity due to viscosity
 	if (!FMath::IsNearlyZero(mp_velocity->Properties()->decay)) {
@@ -175,25 +104,6 @@ void FluidSimulation3D::UpdateAdvection() const {
 	// Change advection scale depending on grid size. Smaller grids means larger cells, so scale should be smaller.
 	// Average dimension size of std_dimension value (100) equals an advection_scale of 1
 	auto advection_scale = avg_dimension / std_dimension;
-
-	mp_ink->Destination()->Set(1.0f);
-
-	// Advect the ink
-	if (mp_ink->Properties()->advection > 0) {
-		ForwardAdvection(mp_ink->Source(), mp_ink->Destination(), mp_ink->Properties()->advection * advection_scale);
-		mp_ink->SwapLocations();
-		ReverseAdvection(mp_ink->Source(), mp_ink->Destination(), mp_ink->Properties()->advection * advection_scale);
-		mp_ink->SwapLocations();
-	}
-
-	// Only advect the heat if it is applying a force
-	float in = mp_heat->Properties()->force;
-	if (!FMath::IsNearlyZero(in)) {
-		ForwardAdvection(mp_heat->Source(), mp_heat->Destination(), mp_heat->Properties()->advection * advection_scale);
-		mp_heat->SwapLocations();
-		ReverseAdvection(mp_heat->Source(), mp_heat->Destination(), mp_heat->Properties()->advection * advection_scale);
-		mp_heat->SwapLocations();
-	}
 
 	// Advection order makes significant differences
 	// Advecting pressure first leads to self-maintaining waves and ripple artifacts
@@ -583,20 +493,12 @@ void FluidSimulation3D::Diffusion(TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_in,
 				p_in->element(x, 0, z + 1) +
 				p_in->element(x, 1, z) - 5.0f * p_in->element(x, 0, z));
 			p_out->element(x, m_size_y - 1, z) = p_in->element(x, m_size_y - 1, z) + force *
-			(p_in->element(x - 1, m_size_y - 1,
-			               z) +
-				p_in->element(x + 1, m_size_y - 1,
-				              z) +
-				p_in->element(x, m_size_y - 1,
-				              z - 1) +
-				p_in->element(x, m_size_y - 1,
-				              z + 1) +
-				p_in->element(x, m_size_y - 2,
-				              z) - 5.0f *
-				p_in->element(
-					x,
-					m_size_y -
-					1, z));
+			(p_in->element(x - 1, m_size_y - 1, z) +
+				p_in->element(x + 1, m_size_y - 1, z) +
+				p_in->element(x, m_size_y - 1, z - 1) +
+				p_in->element(x, m_size_y - 1, z + 1) +
+				p_in->element(x, m_size_y - 2, z) - 
+				5.0f * p_in->element(x, m_size_y - 1, z));
 		}
 	}
 	// Iterate through cells along the left and right surfaces (not including corners).  5 neighbors total.
@@ -609,20 +511,12 @@ void FluidSimulation3D::Diffusion(TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_in,
 				p_in->element(0, y, z + 1) +
 				p_in->element(1, y, z) - 5.0f * p_in->element(0, y, z));
 			p_out->element(m_size_x - 1, y, z) = p_in->element(m_size_x - 1, y, z) + force *
-			(p_in->element(m_size_x - 1, y - 1,
-			               z) +
-				p_in->element(m_size_x - 1, y + 1,
-				              z) +
-				p_in->element(m_size_x - 1, y,
-				              z - 1) +
-				p_in->element(m_size_x - 1, y,
-				              z + 1) +
-				p_in->element(m_size_x - 2, y,
-				              z) - 5.0f *
-				p_in->element(
-					m_size_x -
-					1, y,
-					z));
+			(p_in->element(m_size_x - 1, y - 1, z) +
+				p_in->element(m_size_x - 1, y + 1, z) +
+				p_in->element(m_size_x - 1, y, z - 1) +
+				p_in->element(m_size_x - 1, y, z + 1) +
+				p_in->element(m_size_x - 2, y, z) - 
+				5.0f * p_in->element(m_size_x - 1, y, z));
 		}
 	}
 
@@ -636,19 +530,12 @@ void FluidSimulation3D::Diffusion(TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_in,
 				p_in->element(x + 1, y, 0) +
 				p_in->element(x, y, 1) - 5.0f * p_in->element(x, y, 0));
 			p_out->element(x, y, m_size_z - 1) = p_in->element(x, y, m_size_z - 1) + force *
-			(p_in->element(x, y - 1,
-			               m_size_z - 1) +
-				p_in->element(x, y + 1,
-				              m_size_z - 1) +
-				p_in->element(x - 1, y,
-				              m_size_z - 1) +
-				p_in->element(x + 1, y,
-				              m_size_z - 1) +
-				p_in->element(x, y,
-				              m_size_z - 2) -
-				5.0f * p_in->element(x, y,
-				                     m_size_z -
-				                     1));
+			(p_in->element(x, y - 1, m_size_z - 1) +
+				p_in->element(x, y + 1, m_size_z - 1) +
+				p_in->element(x - 1, y, m_size_z - 1) +
+				p_in->element(x + 1, y, m_size_z - 1) +
+				p_in->element(x, y, m_size_z - 2) -
+				5.0f * p_in->element(x, y, m_size_z - 1));
 		}
 	}
 
@@ -660,52 +547,23 @@ void FluidSimulation3D::Diffusion(TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_in,
 			p_in->element(x, 0, 1) +
 			p_in->element(x, 1, 0) - 4.0f * p_in->element(x, 0, 0));
 		p_out->element(x, m_size_y - 1, 0) = p_in->element(x, m_size_y - 1, 0) + force *
-		(p_in->element(x - 1, m_size_y - 1,
-		               0) +
-			p_in->element(x + 1, m_size_y - 1,
-			              0) +
+		(p_in->element(x - 1, m_size_y - 1, 0) +
+			p_in->element(x + 1, m_size_y - 1, 0) +
 			p_in->element(x, m_size_y - 2, 0) +
 			p_in->element(x, m_size_y - 1, 1) -
-			4.0f *
-			p_in->element(x, m_size_y - 1, 0));
+			4.0f * p_in->element(x, m_size_y - 1, 0));
 		p_out->element(x, 0, m_size_z - 1) = p_in->element(x, 0, m_size_z - 1) + force *
-		(p_in->element(x - 1, 0,
-		               m_size_z - 1) +
-			p_in->element(x + 1, 0,
-			              m_size_z - 1) +
+		(p_in->element(x - 1, 0, m_size_z - 1) +
+			p_in->element(x + 1, 0, m_size_z - 1) +
 			p_in->element(x, 0, m_size_z - 2) +
 			p_in->element(x, 1, m_size_z - 1) -
-			4.0f *
-			p_in->element(x, 0, m_size_z - 1));
+			4.0f * p_in->element(x, 0, m_size_z - 1));
 		p_out->element(x, m_size_y - 1, m_size_z - 1) = p_in->element(x, m_size_y - 1, m_size_z - 1) + force *
-		(p_in->element(
-				x - 1,
-				m_size_y -
-				1,
-				m_size_z -
-				1) +
-			p_in->element(
-				x + 1,
-				m_size_y -
-				1,
-				m_size_z -
-				1) +
-			p_in->element(x,
-			              m_size_y -
-			              2,
-			              m_size_z -
-			              1) +
-			p_in->element(x,
-			              m_size_y -
-			              1,
-			              m_size_z -
-			              2) -
-			4.0f *
-			p_in->element(x,
-			              m_size_y -
-			              1,
-			              m_size_z -
-			              1));
+		(p_in->element(x - 1, m_size_y - 1, m_size_z - 1) +
+			p_in->element(x + 1, m_size_y - 1, m_size_z - 1) +
+			p_in->element(x, m_size_y - 2, m_size_z - 1) +
+			p_in->element(x, m_size_y - 1, m_size_z - 2) -
+			4.0f *p_in->element(x, m_size_y - 1, m_size_z - 1));
 	}
 
 	// Iterate through cells along the y axis.  4 neighbors total.
@@ -716,51 +574,23 @@ void FluidSimulation3D::Diffusion(TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_in,
 			p_in->element(0, y, 1) +
 			p_in->element(1, y, 0) - 4.0f * p_in->element(0, y, 0));
 		p_out->element(m_size_x - 1, y, 0) = p_in->element(m_size_x - 1, y, 0) + force *
-		(p_in->element(m_size_x - 1, y - 1,
-		               0) +
-			p_in->element(m_size_x - 1, y + 1,
-			              0) +
+		(p_in->element(m_size_x - 1, y - 1, 0) +
+			p_in->element(m_size_x - 1, y + 1, 0) +
 			p_in->element(m_size_x - 1, y, 1) +
 			p_in->element(m_size_x - 2, y, 0) -
-			4.0f *
-			p_in->element(m_size_x - 1, y, 0));
+			4.0f *p_in->element(m_size_x - 1, y, 0));
 		p_out->element(0, y, m_size_z - 1) = p_in->element(0, y, m_size_z - 1) + force *
-		(p_in->element(0, y - 1,
-		               m_size_z - 1) +
-			p_in->element(0, y + 1,
-			              m_size_z - 1) +
+		(p_in->element(0, y - 1, m_size_z - 1) +
+			p_in->element(0, y + 1, m_size_z - 1) +
 			p_in->element(0, y, m_size_z - 2) +
 			p_in->element(1, y, m_size_z - 1) -
-			4.0f *
-			p_in->element(0, y, m_size_z - 1));
+			4.0f *p_in->element(0, y, m_size_z - 1));
 		p_out->element(m_size_x - 1, y, m_size_z - 1) = p_in->element(m_size_x - 1, y, m_size_z - 1) + force *
-		(p_in->element(
-				m_size_x -
-				1, y - 1,
-				m_size_z -
-				1) +
-			p_in->element(
-				m_size_x -
-				1,
-				y + 1,
-				m_size_z -
-				1) +
-			p_in->element(
-				m_size_x -
-				1, y,
-				m_size_z -
-				2) +
-			p_in->element(
-				m_size_x -
-				2, y,
-				m_size_z -
-				1) -
-			4.0f *
-			p_in->element(
-				m_size_x -
-				1, y,
-				m_size_z -
-				1));
+		(p_in->element(m_size_x - 1, y - 1, m_size_z - 1) +
+			p_in->element(m_size_x - 1, y + 1, m_size_z - 1) +
+			p_in->element(m_size_x - 1, y, m_size_z - 2) +
+			p_in->element(m_size_x - 2, y, m_size_z - 1) -
+			4.0f *p_in->element(m_size_x - 1, y, m_size_z - 1));
 	}
 
 	// Iterate through cells along the z axis.  4 neighbors total.
@@ -771,52 +601,23 @@ void FluidSimulation3D::Diffusion(TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_in,
 			p_in->element(1, 0, z) +
 			p_in->element(0, 1, z) - 4.0f * p_in->element(0, 0, z));
 		p_out->element(m_size_x - 1, 0, z) = p_in->element(m_size_x - 1, 0, z) + force *
-		(p_in->element(m_size_x - 1, 0,
-		               z - 1) +
-			p_in->element(m_size_x - 1, 0,
-			              z + 1) +
+		(p_in->element(m_size_x - 1, 0, z - 1) +
+			p_in->element(m_size_x - 1, 0, z + 1) +
 			p_in->element(m_size_x - 2, 0, z) +
 			p_in->element(m_size_x - 1, 1, z) -
-			4.0f *
-			p_in->element(m_size_x - 1, 0, z));
+			4.0f *p_in->element(m_size_x - 1, 0, z));
 		p_out->element(0, m_size_y - 1, z) = p_in->element(0, m_size_y - 1, z) + force *
-		(p_in->element(0, m_size_y - 1,
-		               z - 1) +
-			p_in->element(0, m_size_y - 1,
-			              z + 1) +
+		(p_in->element(0, m_size_y - 1, z - 1) +
+			p_in->element(0, m_size_y - 1, z + 1) +
 			p_in->element(1, m_size_y - 1, z) +
 			p_in->element(0, m_size_y - 2, z) -
-			4.0f *
-			p_in->element(0, m_size_y - 1, z));
+			4.0f *p_in->element(0, m_size_y - 1, z));
 		p_out->element(m_size_x - 1, m_size_y - 1, z) = p_in->element(m_size_x - 1, m_size_y - 1, z) + force *
-		(p_in->element(
-				m_size_x -
-				1,
-				m_size_y -
-				1,
-				z - 1) +
-			p_in->element(
-				m_size_x -
-				1,
-				m_size_y -
-				1,
-				z + 1) +
-			p_in->element(
-				m_size_x -
-				2,
-				m_size_y -
-				1, z) +
-			p_in->element(
-				m_size_x -
-				1,
-				m_size_y -
-				2, z) -
-			4.0f *
-			p_in->element(
-				m_size_x -
-				1,
-				m_size_y -
-				1, z));
+		(p_in->element(m_size_x - 1, m_size_y - 1, z - 1) +
+			p_in->element(m_size_x - 1, m_size_y - 1, z + 1) +
+			p_in->element(m_size_x - 2, m_size_y - 1, z) +
+			p_in->element(m_size_x - 1, m_size_y - 2, z) -
+			4.0f *p_in->element(m_size_x - 1, m_size_y - 1, z));
 	}
 
 	// Diffuse the last 8 corner cells.  3 neighbors total.
@@ -835,89 +636,31 @@ void FluidSimulation3D::Diffusion(TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_in,
 		p_in->element(0, m_size_y - 1, 1) -
 		3.0f * p_in->element(0, m_size_y - 1, 0));
 	p_out->element(m_size_x - 1, m_size_y - 1, 0) = p_in->element(m_size_x - 1, m_size_y - 1, 0) + force *
-	(p_in->element(
-			m_size_x - 2,
-			m_size_y - 1,
-			0) +
-		p_in->element(
-			m_size_x -
-			1,
-			m_size_y -
-			2, 0) +
-		p_in->element(
-			m_size_x -
-			1,
-			m_size_y -
-			1, 1) -
-		3.0f *
-		p_in->element(
-			m_size_x -
-			1,
-			m_size_y -
-			1, 0));
+	(p_in->element(m_size_x - 2, m_size_y - 1, 0) +
+		p_in->element(m_size_x - 1, m_size_y - 2, 0) +
+		p_in->element(m_size_x - 1, m_size_y - 1, 1) -
+		3.0f *p_in->element(m_size_x - 1, m_size_y - 1, 0));
 	p_out->element(0, 0, m_size_z - 1) = p_in->element(0, 0, m_size_z - 1) + force *
 	(p_in->element(1, 0, m_size_z - 1) +
 		p_in->element(0, 1, m_size_z - 1) +
 		p_in->element(0, 0, m_size_z - 2) -
 		3.0f * p_in->element(0, 0, m_size_z - 1));
 	p_out->element(m_size_x - 1, 0, m_size_z - 1) = p_in->element(m_size_x - 1, 0, m_size_z - 1) + force *
-	(p_in->element(
-			m_size_x - 2,
-			0, m_size_z -
-			1) +
-		p_in->element(
-			m_size_x -
-			1, 1,
-			m_size_z -
-			1) +
-		p_in->element(
-			m_size_x -
-			1, 0,
-			m_size_z -
-			2) - 3.0f *
-		p_in->element(
-			m_size_x -
-			1,
-			0,
-			m_size_z -
-			1));
+	(p_in->element(m_size_x - 2, 0, m_size_z - 1) +
+		p_in->element(m_size_x - 1, 1, m_size_z - 1) +
+		p_in->element(m_size_x - 1, 0, m_size_z - 2) - 3.0f *
+		p_in->element(m_size_x - 1, 0, m_size_z - 1));
 	p_out->element(0, m_size_y - 1, m_size_z - 1) = p_in->element(0, m_size_y - 1, m_size_z - 1) + force *
-	(p_in->element(1,
-	               m_size_y -
-	               1,
-	               m_size_z -
-	               1) +
-		p_in->element(0,
-		              m_size_y -
-		              2,
-		              m_size_z -
-		              1) +
-		p_in->element(0,
-		              m_size_y -
-		              1,
-		              m_size_z -
-		              2) -
-		3.0f *
-		p_in->element(0,
-		              m_size_y -
-		              1,
-		              m_size_z -
-		              1));
+	(p_in->element(1, m_size_y - 1, m_size_z - 1) +
+		p_in->element(0, m_size_y - 2, m_size_z - 1) +
+		p_in->element(0, m_size_y - 1, m_size_z - 2) -
+		3.0f *p_in->element(0, m_size_y - 1, m_size_z - 1));
 	p_out->element(m_size_x - 1, m_size_y - 1, m_size_z - 1) =
 			p_in->element(m_size_x - 1, m_size_y - 1, m_size_z - 1) + force *
-			(p_in->element(m_size_x - 2, m_size_y - 1,
-			               m_size_z - 1) +
-				p_in->element(m_size_x - 1, m_size_y - 2,
-				              m_size_z - 1) +
-				p_in->element(m_size_x - 1, m_size_y - 1,
-				              m_size_z - 2) - 3.0f *
-				p_in->element(
-					m_size_x -
-					1,
-					m_size_y -
-					1,
-					m_size_z -
-					1));
+			(p_in->element(m_size_x - 2, m_size_y - 1, m_size_z - 1) +
+				p_in->element(m_size_x - 1, m_size_y - 2, m_size_z - 1) +
+				p_in->element(m_size_x - 1, m_size_y - 1, m_size_z - 2) - 
+				3.0f *p_in->element(m_size_x - 1, m_size_y - 1, m_size_z - 1));
 
 	// Iterate through all the remaining cells that are not touching a boundary.  6 neighbors total.
 	for (int32 x = 1; x < m_size_x - 1; x++) {
@@ -1369,8 +1112,7 @@ void FluidSimulation3D::InvertVelocityEdges() const {
 void FluidSimulation3D::Reset() const {
 	mp_pressure->Reset(1.0f);
 	mp_velocity->Reset(0.0f);
-	mp_ink->Reset(0.0f);
-	mp_heat->Reset(0.0f);
+	m_solids->Set(false);
 }
 
 // Accessor methods
@@ -1412,14 +1154,6 @@ TSharedPtr<AtmoPkg3D, ESPMode::ThreadSafe> FluidSimulation3D::Pressure() const {
 
 TSharedPtr<VelPkg3D, ESPMode::ThreadSafe> FluidSimulation3D::Velocity() const {
 	return mp_velocity;
-};
-
-TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> FluidSimulation3D::Ink() const {
-	return mp_ink;
-};
-
-TSharedPtr<FluidPkg3D, ESPMode::ThreadSafe> FluidSimulation3D::Heat() const {
-	return mp_heat;
 };
 
 int32 FluidSimulation3D::Height() const {
