@@ -74,6 +74,11 @@ public:
 		return m_array[Index];
 	}
 
+	//Array bracket operator. Returns reference to element at give index.
+	FORCEINLINE T& operator[](int32 Index) {
+		return m_array[Index];
+	}
+
 	// Multiplication - Single value
 	FORCEINLINE TArray3D operator*(T value) {
 		TArray3D<T> result(*this);
@@ -243,7 +248,7 @@ public:
 	}
 
 	// Set entire array to a single value
-	void Set(T initialValue) {
+	FORCEINLINE void Set(T initialValue) {
 		auto count = m_size;
 		while (count--) {
 			m_array[count] = initialValue;
@@ -251,7 +256,7 @@ public:
 	}
 
 	// Set value to a delegate return value
-	void Set(TBaseDelegate<T, int32, int32, int32> func) {
+	FORCEINLINE void Set(TBaseDelegate<T, int32, int32, int32> func) {
 		if (!func.IsBound())
 			return;
 		int32 i = 0;
@@ -259,7 +264,6 @@ public:
 		for (x = 0; x < m_X; ++x) {
 			for (y = 0; y < m_Y; ++y) {
 				for (z = 0; z < m_Z; ++z) {
-
 					m_array[i] = func.Execute(x, y, z);
 					++i;
 				}

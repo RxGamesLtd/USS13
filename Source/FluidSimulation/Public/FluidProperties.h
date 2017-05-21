@@ -24,14 +24,10 @@
 
 #pragma once 
 
+#include "FluidSimulation.h"
+
 // Properties common to the simulation's heat, ink, pressure, and velocity grids
 struct FLUIDSIMULATION_API FluidProperties {
-	FluidProperties() {
-		diffusion = 0.0f;
-		advection = 0.0f;
-		force = 0.0f;
-		decay = 0.0f;
-	}
 
 	float diffusion;
 
@@ -40,4 +36,11 @@ struct FLUIDSIMULATION_API FluidProperties {
 	float force;
 
 	float decay;
+
+	FluidProperties() {
+		diffusion = 0.0f;
+		advection = 0.0f;
+		force = 0.0f;
+		decay = 0.0f;
+	}
 };

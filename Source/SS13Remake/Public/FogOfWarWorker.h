@@ -16,8 +16,8 @@
 
 #pragma once
 
-#include <Runtime/Core/Public/HAL/Platform.h>
-#include <Runtime/Core/Public/Core.h>
+#include "UObject/Object.h"
+#include "EngineMinimal.h"
 
 class AFogOfWarManager;
 

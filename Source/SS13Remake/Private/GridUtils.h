@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include "SS13Remake.h"
+#include "UObject/Object.h"
 #include "GridUtils.generated.h"
 
 class AWorldGrid;

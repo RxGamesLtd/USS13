@@ -22,7 +22,6 @@
 //	http://cowboyprogramming.com/2008/04/01/practical-fluid-mechanics/
 //-------------------------------------------------------------------------------------
 
-#include "FluidSimulation.h"
 #include "Fluid3D.h"
 
 Fluid3D::Fluid3D(int32 x, int32 y, int32 z) : TArray3D(x, y, z) {};

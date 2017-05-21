@@ -1,21 +1,8 @@
-// The MIT License (MIT)
-// Copyright (c) 2017 RxCompile
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-// documentation files (the "Software"), to deal in the Software without restriction, including without limitation
-// the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
-// permit persons to whom the Software is furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in all copies or substantial portions
-// of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
-// WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
-// OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-#include "SS13Remake.h"
+#include "FogOfWarWorker.h"
 #include "FogOfWarManager.h"
+#include "EngineMinimal.h"
+#include "SS13Remake.h"
+#include <utility>
 
 FogOfWarWorker::FogOfWarWorker(AFogOfWarManager* manager) {
 	Manager = manager;
@@ -64,7 +51,7 @@ uint32 FogOfWarWorker::Run() {
 
 		TimeTillLastTick = Manager->GetWorld()->TimeSeconds;
 
-		FPlatformProcess::Sleep(0.1f);
+		FPlatformProcess::Sleep(0.05f);
 	}
 	return 0;
 }
@@ -241,76 +228,83 @@ void FogOfWarWorker::UpdateFowTextureFromCamera(float time) const {
 
 	TSet<FVector2D> currentlyInSight;
 
-	if (!Manager->GetWorld())
-		return;
+	if (!Manager->GetWorld()) return;
 
 	// First PC is local player on client
-	const auto PC = Manager->GetWorld()->GetFirstPlayerController();
+	const auto& PC = Manager->GetWorld()->GetFirstPlayerController();
 
-	if (!PC)
-		return;
+	if (!PC) return;
 
 	// Get viewport size
 	int32 viewSizeX, viewSizeY;
 	PC->GetViewportSize(viewSizeX, viewSizeY);
+	const FVector2D viewportVSize(viewSizeX, viewSizeY);
 
 	// Cache camera location
-	if (!PC->PlayerCameraManager)
-		return;
+	if (!PC->PlayerCameraManager) return;
 
 	Manager->CameraPosition = FVector(PC->PlayerCameraManager->GetCameraLocation());
 
 	// Alias texture size
 	auto textureSize = static_cast<int32>(Manager->TextureSize);
+	const FVector2D textureVSize(textureSize, textureSize);
 
 	// Debug stuff
-	const FName TraceTag(TEXT("FOWTrace"));
-	Manager->GetWorld()->DebugDrawTraceTag = TraceTag;
+	static const FName TraceTag(TEXT("FOWTrace"));
 
 	//forget about old positions
-	for (auto& dta : Manager->UnfoggedData) {
-		dta -= 1.0f / Manager->SecondsToForget * time;
+	for (auto&& dta : Manager->UnfoggedData) {
+		dta -= time / Manager->SecondsToForget;
 		if (dta < 0.0f)
 			dta = 0.0f;
 	}
 
-	// iterate through observers to unveil fog
-	for (auto Itr(Manager->Observers.CreateIterator()); Itr; ++Itr) {
-		// check ptr
-		if (!(*Itr)->IsValidLowLevel()) continue;
+	TArray<FVector> observers;
+	observers.Reserve(Manager->Observers.Num());
+	for (const auto& o : Manager->Observers)
+	{
+		observers.Add(o->GetActorLocation());
+	}
 
-		//Find actor position
-		FVector observerLocation = (*Itr)->GetActorLocation();
+
+	// iterate through observers to unveil fog
+	//for (const auto& observer : Manager->Observers) {
+	//FVector observerLocation = observer->GetActorLocation();
+	for (auto& observerLocation : observers) {
+		
+		observerLocation.Z = 1;
 
 		FVector2D observerTexLoc;
 		// skip actors too far
-		if (!PC->ProjectWorldLocationToScreen(observerLocation, observerTexLoc)) continue;
+		if (!PC->ProjectWorldLocationToScreen(observerLocation, observerTexLoc, true)) continue;
 
 		// Translate to Texture space
-		observerTexLoc.X /= viewSizeX;
-		observerTexLoc.Y /= viewSizeY;
-		observerTexLoc *= textureSize;
+		observerTexLoc /= viewportVSize;
+		observerTexLoc *= textureVSize;
 
-		FCollisionQueryParams queryParams(TraceTag, true, (*Itr));
+		FCollisionQueryParams queryParams(TraceTag, true);
 		
 		TSet<FVector2D> sightShape;
 
 		for (float i = 0; i < 2 * PI; i += HALF_PI / 100.0f) {
-			auto x = Manager->SightRange * FMath::Cos(i) + observerLocation.X;
-			auto y = Manager->SightRange * FMath::Sin(i) + observerLocation.Y;
+			auto x = Manager->SightRange * FMath::Cos(i);
+			auto y = Manager->SightRange * FMath::Sin(i);
 
-			FVector sightLoc = FVector(x, y, observerLocation.Z);
-
+			FVector sightLoc = observerLocation + FVector(x, y, 0);
+			
 			FHitResult hit;
 			if (Manager->GetWorld()->LineTraceSingleByChannel(hit, observerLocation, sightLoc, ECC_SightStatic, queryParams))
+			{
 				sightLoc = hit.Location;
+			}
 
 			FVector2D hitTexLoc;
-			if (PC->ProjectWorldLocationToScreen(sightLoc, hitTexLoc)) {
+			if (PC->ProjectWorldLocationToScreen(sightLoc, hitTexLoc, true)) {
 				// Translate to Texture space
-				hitTexLoc.X /= viewSizeX;
-				hitTexLoc.Y /= viewSizeY;
-				hitTexLoc *= textureSize;
+				hitTexLoc /= viewportVSize;
+				hitTexLoc *= textureVSize;
+
+				FMath::Clamp(hitTexLoc, FVector2D::ZeroVector, textureVSize);
 				
 				if (hitTexLoc.X < 0 || hitTexLoc.X >= textureSize || hitTexLoc.Y < 0 || hitTexLoc.Y >= textureSize)
 					continue;
@@ -320,7 +314,7 @@ void FogOfWarWorker::UpdateFowTextureFromCamera(float time) const {
 		}
 		//UE_LOG(LogSS13Remake, Log, TEXT("Fog sights checked."));
 		// draw a unveil shape
-		DrawUnveilShape(observerTexLoc, sightShape);
+		DrawUnveilShape(observerTexLoc, sightShape); 
 		//UE_LOG(LogSS13Remake, Log, TEXT("Fog bound drawn."));
 		//flood fill area
 		//FloodFill(observerTexLoc.X, observerTexLoc.Y);
@@ -330,17 +324,15 @@ void FogOfWarWorker::UpdateFowTextureFromCamera(float time) const {
 	for (int32 y = 0; y < textureSize; ++y) {
 		for (int32 x = 0; x < textureSize; ++x) {
 			auto visibility = Manager->UnfoggedData[x + y * textureSize];
-			if (visibility > 0.0f) {
-				if (visibility > 0.9f) {
-					Manager->TextureData[x + y * textureSize] = FColor(static_cast<uint8>(255),
-					                                                   static_cast<uint8>(255),
-					                                                   static_cast<uint8>(255), 255);
-				}
-				else {
-					Manager->TextureData[x + y * textureSize] = FColor(static_cast<uint8>(100),
-					                                                   static_cast<uint8>(100),
-					                                                   static_cast<uint8>(100), 255);
-				}
+			if (visibility > 0.9f) {
+				Manager->TextureData[x + y * textureSize] = FColor(static_cast<uint8>(255),
+					                                                static_cast<uint8>(255),
+					                                                static_cast<uint8>(255), 255);
+			}
+			else if (visibility > 0.1f) {
+				Manager->TextureData[x + y * textureSize] = FColor(static_cast<uint8>(100),
+					                                                static_cast<uint8>(100),
+					                                                static_cast<uint8>(100), 255);
 			}
 			else {
 				Manager->TextureData[x + y * textureSize] = FColor(static_cast<uint8>(0),
@@ -369,25 +361,13 @@ void FogOfWarWorker::DrawUnveilShape(FVector2D observerTexLoc, TSet<FVector2D> s
 		float y2 = next.Y;
 		const bool steep = FMath::Abs(y2 - y1) > FMath::Abs(x2 - x1);
 		if (steep) {
-			//std::swap(x1, y1);
-			float temp = y1;
-			y1 = x1;
-			x1 = temp;
-			//std::swap(x2, y2);
-			temp = y2;
-			y2 = x2;
-			x2 = temp;
+			std::swap(x1, y1);
+			std::swap(x2, y2);
 		}
 
 		if (x1 > x2) {
-			//std::swap(x1, x2);
-			float temp = x2;
-			x2 = x1;
-			x1 = temp;
-			//std::swap(y1, y2);
-			temp = y2;
-			y2 = y1;
-			y1 = temp;
+			std::swap(x1, x2);
+			std::swap(y1, y2);
 		}
 
 		const float dx = x2 - x1;
@@ -399,20 +379,20 @@ void FogOfWarWorker::DrawUnveilShape(FVector2D observerTexLoc, TSet<FVector2D> s
 
 		const int32 maxX = FMath::TruncToInt(x2);
 
-		const int32 brushSize = 5;
+		const int32 brushSize = 1;
 
 		for (int32 x = FMath::TruncToInt(x1); x < maxX; x++) {
 			if (steep) {
 				//Unveil the positions we are currently seeing
-				for(auto offX = -brushSize ; offX < brushSize; ++offX)
-					for (auto offY = -brushSize; offY < brushSize; ++offY)
+				for(auto offX = -brushSize ; offX <= brushSize; ++offX)
+					for (auto offY = -brushSize; offY <= brushSize; ++offY)
 						if (x + offY >= 0 && x + offY < textureSize && y + offX >= 0 && y + offX < textureSize)
 							Manager->UnfoggedData[y + offX + (x + offY) * textureSize] = 1.0f;
 			}
 			else {
 				//Unveil the positions we are currently seeing
-				for (auto offX = -brushSize; offX < brushSize; ++offX)
-					for (auto offY = -brushSize; offY < brushSize; ++offY)
+				for (auto offX = -brushSize; offX <= brushSize; ++offX)
+					for (auto offY = -brushSize; offY <= brushSize; ++offY)
 						if (x + offX >= 0 && x + offX < textureSize && y + offY >= 0 && y + offY < textureSize)
 							Manager->UnfoggedData[x + offX + (y + offY) * textureSize] = 1.0f;
 			}

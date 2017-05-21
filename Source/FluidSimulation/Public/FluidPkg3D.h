@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include <SharedPointerInternals.h>
+#include "FluidSimulation.h"
 #include "Fluid3D.h"
 #include "FluidProperties.h"
 
@@ -46,17 +46,17 @@ public:
 	void Reset(float v) const;
 
 	// Accessors
-	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> Source() const;
+	Fluid3D& Source() { return *mp_source; }
 
-	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> Destination() const;
+	Fluid3D& Destination() { return *mp_dest; }
 
-	TSharedPtr<FluidProperties, ESPMode::ThreadSafe> Properties() const;
+	FluidProperties& Properties() { return *mp_prop; }
 
 private:
-	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_source; // source
-	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_dest; // destination
+	TUniquePtr<Fluid3D> mp_source; // source
+	TUniquePtr<Fluid3D> mp_dest; // destination
 
-	TSharedPtr<FluidProperties, ESPMode::ThreadSafe> mp_prop; // defines properties of fluid
+	TUniquePtr<FluidProperties> mp_prop; // defines properties of fluid
 
 	int32 m_X; // x dimension
 	int32 m_Y; // y dimension

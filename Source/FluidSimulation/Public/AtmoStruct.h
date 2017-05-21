@@ -20,7 +20,6 @@
 #include "AtmoStruct.generated.h"
 
 USTRUCT(BlueprintType)
-
 struct FLUIDSIMULATION_API FAtmoStruct {
 	GENERATED_BODY()
 

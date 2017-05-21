@@ -54,42 +54,42 @@ public:
 	void Reset() const;
 
 	// Fluid object accessors
-	TSharedPtr<VelPkg3D, ESPMode::ThreadSafe> Velocity() const;
+	VelPkg3D& Velocity() { return *mp_velocity; }
 
-	TSharedPtr<AtmoPkg3D, ESPMode::ThreadSafe> Pressure() const;
+	AtmoPkg3D& Pressure() { return *mp_pressure; }
 
 	// Fluid property accessors
-	int32 DiffusionIterations() const;
+	int32 DiffusionIterations() const { return m_diffusionIter; }
 
-	void DiffusionIterations(int32 value);
+	void DiffusionIterations(int32 value) { m_diffusionIter = value; }
 
-	float Vorticity() const;
+	float Vorticity() const { return m_vorticity; }
 
-	void Vorticity(float value);
+	void Vorticity(float value) { m_vorticity = value; }
 
-	float PressureAccel() const;
+	float PressureAccel() const { return m_pressureAccel; }
 
-	void PressureAccel(float value);
+	void PressureAccel(float value) { m_pressureAccel = value; }
 
-	float dt() const;
+	float dt() const { return m_dt; }
 
-	void dt(float value);
+	void dt(float value) { m_dt = value; }
 
-	int32 Height() const;
+	int32 Height() const { return m_size_z; }
 
-	int32 Width() const;
+	int32 Width() const { return m_size_y; }
 
-	int32 Depth() const;
+	int32 Depth() const { return m_size_x; }
 
 	bool m_bBoundaryCondition;
 
 protected:
 	// Solids
-	TSharedPtr<TArray3D<bool>, ESPMode::ThreadSafe> m_solids;
+	TUniquePtr<TArray3D<bool>> m_solids;
 	// Fluid objects
-	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> m_curl;
-	TSharedPtr<VelPkg3D, ESPMode::ThreadSafe> mp_velocity;
-	TSharedPtr<AtmoPkg3D, ESPMode::ThreadSafe> mp_pressure; // equivalent to density
+	TUniquePtr<Fluid3D> m_curl;
+	TUniquePtr<VelPkg3D> mp_velocity;
+	TUniquePtr<AtmoPkg3D> mp_pressure; // equivalent to density
 
 	// Fluid properties
 	int32 m_diffusionIter; // diffusion cycles per call to Update()
@@ -104,25 +104,21 @@ private:
 	// Forward advection moves the value at each grid point forward along the velocity field
 	// and dissipates it between the four nearest ending points, values are scaled to be > 0
 	// Drawback: Does not handle the dissipation of single cells of pressure (or lines of cells)
-	void ForwardAdvection(TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_in, TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_out,
-	                      float scale) const;
+	void ForwardAdvection(const Fluid3D& p_in, Fluid3D& p_out, float scale) const;
 
 	// Reverse advection moves the value at each grid point backward along the velocity field
 	// and dissipates it between the four nearest ending points, values are scaled to be > 0
 	// Drawback: Does not handle self-advection of velocity without diffusion
-	void ReverseAdvection(TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_in, TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_out,
-	                      float scale) const;
+	void ReverseAdvection(const Fluid3D& p_in, Fluid3D& p_out, float scale) const;
 
 	// Reverse Signed Advection is a simpler implementation of ReverseAdvection that does not scale
 	// the values to be > 0.  Used for self-advecting velocity as velocity can be < 0.
-	void ReverseSignedAdvection(TSharedPtr<VelPkg3D, ESPMode::ThreadSafe> v, const float scale) const;
+	void ReverseSignedAdvection(VelPkg3D& v, const float scale) const;
 
 	// Smooth out the velocity and pressure fields by applying a diffusion filter
-	void Diffusion(TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_in, TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_out,
-	               const float scale) const;
+	void Diffusion(const Fluid3D& p_in, Fluid3D& p_out, float scale) const;
 
-	void DiffusionStable(TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_in, TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_out,
-	                     const float scale) const;
+	void DiffusionStable(const Fluid3D& p_in, Fluid3D& p_out, float scale) const;
 
 	bool IsSolid(int32 this_x, int32 this_y, int32 this_z) const;
 
@@ -134,7 +130,7 @@ private:
 	void PressureAcceleration(const float force) const;
 
 	// Exponentially Decays value towards zero to emulate natural friction on the forces
-	void ExponentialDecay(TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_in_and_out, const float decay) const;
+	void ExponentialDecay(Fluid3D& p_in_and_out, const float decay) const;
 
 	// Cosmetic patch that accellerates the velocity field in a direction tangential to the curve defined by the surrounding points
 	// in ordert to produce vorticities in the fluid

@@ -22,17 +22,16 @@
 //	http://cowboyprogramming.com/2008/04/01/practical-fluid-mechanics/
 //-------------------------------------------------------------------------------------
 
-#include "FluidSimulation.h"
 #include "FluidSimulation3D.h"
 
 DEFINE_STAT(STAT_AtmosUpdatesCount);
 
 FluidSimulation3D::FluidSimulation3D(int32 xSize, int32 ySize, int32 zSize, float dt)
 	: m_diffusionIter(1), m_vorticity(0.0), m_pressureAccel(0.0), m_dt(dt), m_size_x(xSize), m_size_y(ySize), m_size_z(zSize) {
-	m_curl = MakeShareable(new Fluid3D(xSize, ySize, zSize));
-	mp_velocity = MakeShareable(new VelPkg3D(xSize, ySize, zSize));
-	mp_pressure = MakeShareable(new AtmoPkg3D(xSize, ySize, zSize));
-	m_solids = MakeShareable(new TArray3D<bool>(xSize, ySize, zSize));
+	m_curl		= MakeUnique<Fluid3D>(xSize, ySize, zSize);
+	mp_velocity = MakeUnique<VelPkg3D>(xSize, ySize, zSize);
+	mp_pressure = MakeUnique<AtmoPkg3D>(xSize, ySize, zSize);
+	m_solids	= MakeUnique<TArray3D<bool>>(xSize, ySize, zSize);
 
 	Reset();
 }
@@ -49,8 +48,8 @@ void FluidSimulation3D::Update() const {
 void FluidSimulation3D::UpdateDiffusion() const {
 	// Skip diffusion if disabled
 	// Diffusion of Velocity
-	if (mp_velocity->Properties()->diffusion != 0.0f) {
-		const auto scaledVelocity = mp_velocity->Properties()->diffusion / static_cast<float>(m_diffusionIter);
+	if (mp_velocity->Properties().diffusion != 0.0f) {
+		const auto scaledVelocity = mp_velocity->Properties().diffusion / static_cast<float>(m_diffusionIter);
 
 		for (int32 i = 0; i < m_diffusionIter; i++) {
 			Diffusion(mp_velocity->SourceX(), mp_velocity->DestinationX(), scaledVelocity);
@@ -63,8 +62,8 @@ void FluidSimulation3D::UpdateDiffusion() const {
 	}
 
 	// Diffusion of Pressure
-	if (!FMath::IsNearlyZero(mp_pressure->Properties()->diffusion)) {
-		const auto scaledDiffusion = mp_pressure->Properties()->diffusion / static_cast<float>(m_diffusionIter);
+	if (!FMath::IsNearlyZero(mp_pressure->Properties().diffusion)) {
+		const auto scaledDiffusion = mp_pressure->Properties().diffusion / static_cast<float>(m_diffusionIter);
 		for (int32 i = 0; i < m_diffusionIter; i++) {
 			DiffusionStable(mp_pressure->SourceO2(), mp_pressure->DestinationO2(), scaledDiffusion);
 			DiffusionStable(mp_pressure->SourceCO2(), mp_pressure->DestinationCO2(), scaledDiffusion);
@@ -79,10 +78,10 @@ void FluidSimulation3D::UpdateDiffusion() const {
 void FluidSimulation3D::UpdateForces() const {
 
 	// Apply dampening force on velocity due to viscosity
-	if (!FMath::IsNearlyZero(mp_velocity->Properties()->decay)) {
-		ExponentialDecay(mp_velocity->SourceX(), mp_velocity->Properties()->decay);
-		ExponentialDecay(mp_velocity->SourceY(), mp_velocity->Properties()->decay);
-		ExponentialDecay(mp_velocity->SourceZ(), mp_velocity->Properties()->decay);
+	if (!FMath::IsNearlyZero(mp_velocity->Properties().decay)) {
+		ExponentialDecay(mp_velocity->SourceX(), mp_velocity->Properties().decay);
+		ExponentialDecay(mp_velocity->SourceY(), mp_velocity->Properties().decay);
+		ExponentialDecay(mp_velocity->SourceZ(), mp_velocity->Properties().decay);
 	}
 
 	// Apply equilibrium force on pressure for mass conservation
@@ -111,40 +110,39 @@ void FluidSimulation3D::UpdateAdvection() const {
 
 	// Advect Velocity
 	ForwardAdvection(mp_velocity->SourceX(), mp_velocity->DestinationX(),
-	                 mp_velocity->Properties()->advection * advection_scale);
+	                 mp_velocity->Properties().advection * advection_scale);
 	ForwardAdvection(mp_velocity->SourceY(), mp_velocity->DestinationY(),
-	                 mp_velocity->Properties()->advection * advection_scale);
+	                 mp_velocity->Properties().advection * advection_scale);
 	ForwardAdvection(mp_velocity->SourceZ(), mp_velocity->DestinationZ(),
-	                 mp_velocity->Properties()->advection * advection_scale);
+	                 mp_velocity->Properties().advection * advection_scale);
 
-	ReverseSignedAdvection(mp_velocity, advection_scale);
+	ReverseSignedAdvection(*mp_velocity, advection_scale);
 
 	// Take care of boundries
 	InvertVelocityEdges();
 
 	// Advect Pressure. Represents compressible fluid
 	ForwardAdvection(mp_pressure->SourceO2(), mp_pressure->DestinationO2(),
-	                 mp_pressure->Properties()->advection * advection_scale);
+	                 mp_pressure->Properties().advection * advection_scale);
 	ForwardAdvection(mp_pressure->SourceN2(), mp_pressure->DestinationN2(),
-	                 mp_pressure->Properties()->advection * advection_scale);
+	                 mp_pressure->Properties().advection * advection_scale);
 	ForwardAdvection(mp_pressure->SourceCO2(), mp_pressure->DestinationCO2(),
-	                 mp_pressure->Properties()->advection * advection_scale);
+	                 mp_pressure->Properties().advection * advection_scale);
 	ForwardAdvection(mp_pressure->SourceToxin(), mp_pressure->DestinationToxin(),
-	                 mp_pressure->Properties()->advection * advection_scale);
+	                 mp_pressure->Properties().advection * advection_scale);
 	mp_pressure->SwapLocations();
 	ReverseAdvection(mp_pressure->SourceO2(), mp_pressure->DestinationO2(),
-	                 mp_pressure->Properties()->advection * advection_scale);
+	                 mp_pressure->Properties().advection * advection_scale);
 	ReverseAdvection(mp_pressure->SourceN2(), mp_pressure->DestinationN2(),
-	                 mp_pressure->Properties()->advection * advection_scale);
+	                 mp_pressure->Properties().advection * advection_scale);
 	ReverseAdvection(mp_pressure->SourceCO2(), mp_pressure->DestinationCO2(),
-	                 mp_pressure->Properties()->advection * advection_scale);
+	                 mp_pressure->Properties().advection * advection_scale);
 	ReverseAdvection(mp_pressure->SourceToxin(), mp_pressure->DestinationToxin(),
-	                 mp_pressure->Properties()->advection * advection_scale);
+	                 mp_pressure->Properties().advection * advection_scale);
 	mp_pressure->SwapLocations();
 }
 
-void FluidSimulation3D::ForwardAdvection(TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_in,
-                                         TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_out, float scale) const {
+void FluidSimulation3D::ForwardAdvection(const Fluid3D& p_in, Fluid3D& p_out, float scale) const {
 	auto force = m_dt * scale; // distance to advect
 	float vx, vy, vz; // velocity values of the current x,y,z locations
 	float x1, y1, z1; // x, y, z locations after advection
@@ -172,7 +170,7 @@ void FluidSimulation3D::ForwardAdvection(TSharedPtr<Fluid3D, ESPMode::ThreadSafe
 	//
 
 	// Copy source to destination as forward advection results in adding/subtracing not moving
-	*p_out = *p_in;
+	p_out = p_in;
 
 	if (FMath::IsNearlyZero(force)) {
 		return;
@@ -182,9 +180,9 @@ void FluidSimulation3D::ForwardAdvection(TSharedPtr<Fluid3D, ESPMode::ThreadSafe
 	for (int32 x = 1; x < m_size_x - 1; x++) {
 		for (int32 y = 1; y < m_size_y - 1; y++) {
 			for (int32 z = 1; z < m_size_z - 1; z++) {
-				vx = mp_velocity->SourceX()->element(x, y, z);
-				vy = mp_velocity->SourceY()->element(x, y, z);
-				vz = mp_velocity->SourceZ()->element(x, y, z);
+				vx = mp_velocity->SourceX().element(x, y, z);
+				vy = mp_velocity->SourceY().element(x, y, z);
+				vz = mp_velocity->SourceZ().element(x, y, z);
 				if (!FMath::IsNearlyZero(vx) || !FMath::IsNearlyZero(vy) || !FMath::IsNearlyZero(vz)) {
 					// Find the floating point location of the forward advection
 					x1 = x + vx * force;
@@ -210,7 +208,7 @@ void FluidSimulation3D::ForwardAdvection(TSharedPtr<Fluid3D, ESPMode::ThreadSafe
 
 
 					// Pull source value from the unmodified p_in
-					source_value = p_in->element(x, y, z);
+					source_value = p_in.element(x, y, z);
 
 					// Bilinear interpolation
 					A = (1.0f - fz1) * (1.0f - fy1) * (1.0f - fx1) * source_value;
@@ -223,25 +221,24 @@ void FluidSimulation3D::ForwardAdvection(TSharedPtr<Fluid3D, ESPMode::ThreadSafe
 					H = (fz1) * (fy1) * (fx1) * source_value;
 
 					// Add A,B,C,D,E,F,G,H to the eight destination cells
-					p_out->element(x1A, y1A, z1A) += A;
-					p_out->element(x1A + 1, y1A, z1A) += B;
-					p_out->element(x1A, y1A + 1, z1A) += C;
-					p_out->element(x1A + 1, y1A + 1, z1A) += D;
-					p_out->element(x1A, y1A, z1A + 1) += E;
-					p_out->element(x1A + 1, y1A, z1A + 1) += F;
-					p_out->element(x1A, y1A + 1, z1A + 1) += G;
-					p_out->element(x1A + 1, y1A + 1, z1A + 1) += H;
+					p_out.element(x1A, y1A, z1A) += A;
+					p_out.element(x1A + 1, y1A, z1A) += B;
+					p_out.element(x1A, y1A + 1, z1A) += C;
+					p_out.element(x1A + 1, y1A + 1, z1A) += D;
+					p_out.element(x1A, y1A, z1A + 1) += E;
+					p_out.element(x1A + 1, y1A, z1A + 1) += F;
+					p_out.element(x1A, y1A + 1, z1A + 1) += G;
+					p_out.element(x1A + 1, y1A + 1, z1A + 1) += H;
 
 					// Subtract A-H from source for mass conservation
-					p_out->element(x, y, z) -= (A + B + C + D + E + F + G + H);
+					p_out.element(x, y, z) -= (A + B + C + D + E + F + G + H);
 				}
 			}
 		}
 	}
 }
 
-void FluidSimulation3D::ReverseAdvection(TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_in,
-                                         TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_out, float scale) const {
+void FluidSimulation3D::ReverseAdvection(const Fluid3D& p_in, Fluid3D& p_out, float scale) const {
 	auto force = m_dt * scale; // distance to advect
 	float vx, vy, vz; // velocity values of the current x,y,z locations
 	float x1, y1, z1; // x, y, z locations after advection
@@ -259,7 +256,7 @@ void FluidSimulation3D::ReverseAdvection(TSharedPtr<Fluid3D, ESPMode::ThreadSafe
 	      E_Total, F_Total, G_Total, H_Total; // Total fraction being requested by the 8 grid points after entire grid has been advected
 
 	// Copy source to destination as reverse advection results in adding/subtracing not moving
-	*p_out = *p_in;
+	p_out = p_in;
 
 	if (FMath::IsNearlyZero(force)) {
 		return;
@@ -295,9 +292,9 @@ void FluidSimulation3D::ReverseAdvection(TSharedPtr<Fluid3D, ESPMode::ThreadSafe
 	for (int32 x = 1; x < m_size_x - 1; x++) {
 		for (int32 y = 1; y < m_size_y - 1; y++) {
 			for (int32 z = 1; z < m_size_z - 1; z++) {
-				vx = mp_velocity->SourceX()->element(x, y, z);
-				vy = mp_velocity->SourceY()->element(x, y, z);
-				vz = mp_velocity->SourceZ()->element(x, y, z);
+				vx = mp_velocity->SourceX().element(x, y, z);
+				vy = mp_velocity->SourceY().element(x, y, z);
+				vz = mp_velocity->SourceZ().element(x, y, z);
 				if (!FMath::IsNearlyZero(vx) || !FMath::IsNearlyZero(vy) || !FMath::IsNearlyZero(vz)) {
 					// Find the floating point location of the advection
 					x1 = x + vx * force;
@@ -452,32 +449,31 @@ void FluidSimulation3D::ReverseAdvection(TSharedPtr<Fluid3D, ESPMode::ThreadSafe
 					// Give the fraction of the original source, do not alter the original
 					// So we are taking fractions from p_in, but not altering those values as they are used again by later cells
 					// if the field were mass conserving, then we could simply move the value but if we try that we lose mass
-					p_out->element(x, y, z) += A * p_in->element(x1A, y1A, z1A) +
-							B * p_in->element(x1A + 1, y1A, z1A) +
-							C * p_in->element(x1A, y1A + 1, z1A) +
-							D * p_in->element(x1A + 1, y1A + 1, z1A) +
-							E * p_in->element(x1A, y1A, z1A + 1) +
-							F * p_in->element(x1A + 1, y1A, z1A + 1) +
-							G * p_in->element(x1A, y1A + 1, z1A + 1) +
-							H * p_in->element(x1A + 1, y1A + 1, z1A + 1);
+					p_out.element(x, y, z) += A * p_in.element(x1A, y1A, z1A) +
+							B * p_in.element(x1A + 1, y1A, z1A) +
+							C * p_in.element(x1A, y1A + 1, z1A) +
+							D * p_in.element(x1A + 1, y1A + 1, z1A) +
+							E * p_in.element(x1A, y1A, z1A + 1) +
+							F * p_in.element(x1A + 1, y1A, z1A + 1) +
+							G * p_in.element(x1A, y1A + 1, z1A + 1) +
+							H * p_in.element(x1A + 1, y1A + 1, z1A + 1);
 
 					// Subtract the values added to the destination from the source for mass conservation
-					p_out->element(x1A, y1A, z1A) -= A * p_in->element(x1A, y1A, z1A);
-					p_out->element(x1A + 1, y1A, z1A) -= B * p_in->element(x1A + 1, y1A, z1A);
-					p_out->element(x1A, y1A + 1, z1A) -= C * p_in->element(x1A, y1A + 1, z1A);
-					p_out->element(x1A + 1, y1A + 1, z1A) -= D * p_in->element(x1A + 1, y1A + 1, z1A);
-					p_out->element(x1A, y1A, z1A + 1) -= E * p_in->element(x1A, y1A, z1A + 1);
-					p_out->element(x1A + 1, y1A, z1A + 1) -= F * p_in->element(x1A + 1, y1A, z1A + 1);
-					p_out->element(x1A, y1A + 1, z1A + 1) -= G * p_in->element(x1A, y1A + 1, z1A + 1);
-					p_out->element(x1A + 1, y1A + 1, z1A + 1) -= H * p_in->element(x1A + 1, y1A + 1, z1A + 1);
+					p_out.element(x1A, y1A, z1A) -= A * p_in.element(x1A, y1A, z1A);
+					p_out.element(x1A + 1, y1A, z1A) -= B * p_in.element(x1A + 1, y1A, z1A);
+					p_out.element(x1A, y1A + 1, z1A) -= C * p_in.element(x1A, y1A + 1, z1A);
+					p_out.element(x1A + 1, y1A + 1, z1A) -= D * p_in.element(x1A + 1, y1A + 1, z1A);
+					p_out.element(x1A, y1A, z1A + 1) -= E * p_in.element(x1A, y1A, z1A + 1);
+					p_out.element(x1A + 1, y1A, z1A + 1) -= F * p_in.element(x1A + 1, y1A, z1A + 1);
+					p_out.element(x1A, y1A + 1, z1A + 1) -= G * p_in.element(x1A, y1A + 1, z1A + 1);
+					p_out.element(x1A + 1, y1A + 1, z1A + 1) -= H * p_in.element(x1A + 1, y1A + 1, z1A + 1);
 				}
 			}
 		}
 	}
 }
 
-void FluidSimulation3D::Diffusion(TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_in,
-                                  TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_out, const float scale) const {
+void FluidSimulation3D::Diffusion(const Fluid3D& p_in, Fluid3D& p_out, float scale) const {
 	float force = m_dt * scale;
 
 	if (FMath::IsNegativeFloat(force) || FMath::IsNearlyZero(force))
@@ -486,201 +482,200 @@ void FluidSimulation3D::Diffusion(TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_in,
 	// Iterate through cells along the top and bottom surfaces (not including corners).  5 neighbors total.
 	for (int32 x = 1; x < m_size_x - 1; x++) {
 		for (int32 z = 1; z < m_size_z - 1; z++) {
-			p_out->element(x, 0, z) = p_in->element(x, 0, z) + force *
-			(p_in->element(x - 1, 0, z) +
-				p_in->element(x + 1, 0, z) +
-				p_in->element(x, 0, z - 1) +
-				p_in->element(x, 0, z + 1) +
-				p_in->element(x, 1, z) - 5.0f * p_in->element(x, 0, z));
-			p_out->element(x, m_size_y - 1, z) = p_in->element(x, m_size_y - 1, z) + force *
-			(p_in->element(x - 1, m_size_y - 1, z) +
-				p_in->element(x + 1, m_size_y - 1, z) +
-				p_in->element(x, m_size_y - 1, z - 1) +
-				p_in->element(x, m_size_y - 1, z + 1) +
-				p_in->element(x, m_size_y - 2, z) - 
-				5.0f * p_in->element(x, m_size_y - 1, z));
+			p_out.element(x, 0, z) = p_in.element(x, 0, z) + force *
+			(p_in.element(x - 1, 0, z) +
+				p_in.element(x + 1, 0, z) +
+				p_in.element(x, 0, z - 1) +
+				p_in.element(x, 0, z + 1) +
+				p_in.element(x, 1, z) - 5.0f * p_in.element(x, 0, z));
+			p_out.element(x, m_size_y - 1, z) = p_in.element(x, m_size_y - 1, z) + force *
+			(p_in.element(x - 1, m_size_y - 1, z) +
+				p_in.element(x + 1, m_size_y - 1, z) +
+				p_in.element(x, m_size_y - 1, z - 1) +
+				p_in.element(x, m_size_y - 1, z + 1) +
+				p_in.element(x, m_size_y - 2, z) - 
+				5.0f * p_in.element(x, m_size_y - 1, z));
 		}
 	}
 	// Iterate through cells along the left and right surfaces (not including corners).  5 neighbors total.
 	for (int32 y = 1; y < m_size_y - 1; y++) {
 		for (int32 z = 1; z < m_size_z - 1; z++) {
-			p_out->element(0, y, z) = p_in->element(0, y, z) + force *
-			(p_in->element(0, y - 1, z) +
-				p_in->element(0, y + 1, z) +
-				p_in->element(0, y, z - 1) +
-				p_in->element(0, y, z + 1) +
-				p_in->element(1, y, z) - 5.0f * p_in->element(0, y, z));
-			p_out->element(m_size_x - 1, y, z) = p_in->element(m_size_x - 1, y, z) + force *
-			(p_in->element(m_size_x - 1, y - 1, z) +
-				p_in->element(m_size_x - 1, y + 1, z) +
-				p_in->element(m_size_x - 1, y, z - 1) +
-				p_in->element(m_size_x - 1, y, z + 1) +
-				p_in->element(m_size_x - 2, y, z) - 
-				5.0f * p_in->element(m_size_x - 1, y, z));
+			p_out.element(0, y, z) = p_in.element(0, y, z) + force *
+			(p_in.element(0, y - 1, z) +
+				p_in.element(0, y + 1, z) +
+				p_in.element(0, y, z - 1) +
+				p_in.element(0, y, z + 1) +
+				p_in.element(1, y, z) - 5.0f * p_in.element(0, y, z));
+			p_out.element(m_size_x - 1, y, z) = p_in.element(m_size_x - 1, y, z) + force *
+			(p_in.element(m_size_x - 1, y - 1, z) +
+				p_in.element(m_size_x - 1, y + 1, z) +
+				p_in.element(m_size_x - 1, y, z - 1) +
+				p_in.element(m_size_x - 1, y, z + 1) +
+				p_in.element(m_size_x - 2, y, z) - 
+				5.0f * p_in.element(m_size_x - 1, y, z));
 		}
 	}
 
 	// Iterate through cells along the front and back surfaces (not including corners).  5 neighbors total.
 	for (int32 x = 1; x < m_size_x - 1; x++) {
 		for (int32 y = 1; y < m_size_y - 1; y++) {
-			p_out->element(x, y, 0) = p_in->element(x, y, 0) + force *
-			(p_in->element(x, y - 1, 0) +
-				p_in->element(x, y + 1, 0) +
-				p_in->element(x - 1, y, 0) +
-				p_in->element(x + 1, y, 0) +
-				p_in->element(x, y, 1) - 5.0f * p_in->element(x, y, 0));
-			p_out->element(x, y, m_size_z - 1) = p_in->element(x, y, m_size_z - 1) + force *
-			(p_in->element(x, y - 1, m_size_z - 1) +
-				p_in->element(x, y + 1, m_size_z - 1) +
-				p_in->element(x - 1, y, m_size_z - 1) +
-				p_in->element(x + 1, y, m_size_z - 1) +
-				p_in->element(x, y, m_size_z - 2) -
-				5.0f * p_in->element(x, y, m_size_z - 1));
+			p_out.element(x, y, 0) = p_in.element(x, y, 0) + force *
+			(p_in.element(x, y - 1, 0) +
+				p_in.element(x, y + 1, 0) +
+				p_in.element(x - 1, y, 0) +
+				p_in.element(x + 1, y, 0) +
+				p_in.element(x, y, 1) - 5.0f * p_in.element(x, y, 0));
+			p_out.element(x, y, m_size_z - 1) = p_in.element(x, y, m_size_z - 1) + force *
+			(p_in.element(x, y - 1, m_size_z - 1) +
+				p_in.element(x, y + 1, m_size_z - 1) +
+				p_in.element(x - 1, y, m_size_z - 1) +
+				p_in.element(x + 1, y, m_size_z - 1) +
+				p_in.element(x, y, m_size_z - 2) -
+				5.0f * p_in.element(x, y, m_size_z - 1));
 		}
 	}
 
 	// Iterate through cells along the x axis.  4 neighbors total.
 	for (int32 x = 1; x < m_size_x - 1; x++) {
-		p_out->element(x, 0, 0) = p_in->element(x, 0, 0) + force *
-		(p_in->element(x - 1, 0, 0) +
-			p_in->element(x + 1, 0, 0) +
-			p_in->element(x, 0, 1) +
-			p_in->element(x, 1, 0) - 4.0f * p_in->element(x, 0, 0));
-		p_out->element(x, m_size_y - 1, 0) = p_in->element(x, m_size_y - 1, 0) + force *
-		(p_in->element(x - 1, m_size_y - 1, 0) +
-			p_in->element(x + 1, m_size_y - 1, 0) +
-			p_in->element(x, m_size_y - 2, 0) +
-			p_in->element(x, m_size_y - 1, 1) -
-			4.0f * p_in->element(x, m_size_y - 1, 0));
-		p_out->element(x, 0, m_size_z - 1) = p_in->element(x, 0, m_size_z - 1) + force *
-		(p_in->element(x - 1, 0, m_size_z - 1) +
-			p_in->element(x + 1, 0, m_size_z - 1) +
-			p_in->element(x, 0, m_size_z - 2) +
-			p_in->element(x, 1, m_size_z - 1) -
-			4.0f * p_in->element(x, 0, m_size_z - 1));
-		p_out->element(x, m_size_y - 1, m_size_z - 1) = p_in->element(x, m_size_y - 1, m_size_z - 1) + force *
-		(p_in->element(x - 1, m_size_y - 1, m_size_z - 1) +
-			p_in->element(x + 1, m_size_y - 1, m_size_z - 1) +
-			p_in->element(x, m_size_y - 2, m_size_z - 1) +
-			p_in->element(x, m_size_y - 1, m_size_z - 2) -
-			4.0f *p_in->element(x, m_size_y - 1, m_size_z - 1));
+		p_out.element(x, 0, 0) = p_in.element(x, 0, 0) + force *
+		(p_in.element(x - 1, 0, 0) +
+			p_in.element(x + 1, 0, 0) +
+			p_in.element(x, 0, 1) +
+			p_in.element(x, 1, 0) - 4.0f * p_in.element(x, 0, 0));
+		p_out.element(x, m_size_y - 1, 0) = p_in.element(x, m_size_y - 1, 0) + force *
+		(p_in.element(x - 1, m_size_y - 1, 0) +
+			p_in.element(x + 1, m_size_y - 1, 0) +
+			p_in.element(x, m_size_y - 2, 0) +
+			p_in.element(x, m_size_y - 1, 1) -
+			4.0f * p_in.element(x, m_size_y - 1, 0));
+		p_out.element(x, 0, m_size_z - 1) = p_in.element(x, 0, m_size_z - 1) + force *
+		(p_in.element(x - 1, 0, m_size_z - 1) +
+			p_in.element(x + 1, 0, m_size_z - 1) +
+			p_in.element(x, 0, m_size_z - 2) +
+			p_in.element(x, 1, m_size_z - 1) -
+			4.0f * p_in.element(x, 0, m_size_z - 1));
+		p_out.element(x, m_size_y - 1, m_size_z - 1) = p_in.element(x, m_size_y - 1, m_size_z - 1) + force *
+		(p_in.element(x - 1, m_size_y - 1, m_size_z - 1) +
+			p_in.element(x + 1, m_size_y - 1, m_size_z - 1) +
+			p_in.element(x, m_size_y - 2, m_size_z - 1) +
+			p_in.element(x, m_size_y - 1, m_size_z - 2) -
+			4.0f *p_in.element(x, m_size_y - 1, m_size_z - 1));
 	}
 
 	// Iterate through cells along the y axis.  4 neighbors total.
 	for (int32 y = 1; y < m_size_y - 1; y++) {
-		p_out->element(0, y, 0) = p_in->element(0, y, 0) + force *
-		(p_in->element(0, y - 1, 0) +
-			p_in->element(0, y + 1, 0) +
-			p_in->element(0, y, 1) +
-			p_in->element(1, y, 0) - 4.0f * p_in->element(0, y, 0));
-		p_out->element(m_size_x - 1, y, 0) = p_in->element(m_size_x - 1, y, 0) + force *
-		(p_in->element(m_size_x - 1, y - 1, 0) +
-			p_in->element(m_size_x - 1, y + 1, 0) +
-			p_in->element(m_size_x - 1, y, 1) +
-			p_in->element(m_size_x - 2, y, 0) -
-			4.0f *p_in->element(m_size_x - 1, y, 0));
-		p_out->element(0, y, m_size_z - 1) = p_in->element(0, y, m_size_z - 1) + force *
-		(p_in->element(0, y - 1, m_size_z - 1) +
-			p_in->element(0, y + 1, m_size_z - 1) +
-			p_in->element(0, y, m_size_z - 2) +
-			p_in->element(1, y, m_size_z - 1) -
-			4.0f *p_in->element(0, y, m_size_z - 1));
-		p_out->element(m_size_x - 1, y, m_size_z - 1) = p_in->element(m_size_x - 1, y, m_size_z - 1) + force *
-		(p_in->element(m_size_x - 1, y - 1, m_size_z - 1) +
-			p_in->element(m_size_x - 1, y + 1, m_size_z - 1) +
-			p_in->element(m_size_x - 1, y, m_size_z - 2) +
-			p_in->element(m_size_x - 2, y, m_size_z - 1) -
-			4.0f *p_in->element(m_size_x - 1, y, m_size_z - 1));
+		p_out.element(0, y, 0) = p_in.element(0, y, 0) + force *
+		(p_in.element(0, y - 1, 0) +
+			p_in.element(0, y + 1, 0) +
+			p_in.element(0, y, 1) +
+			p_in.element(1, y, 0) - 4.0f * p_in.element(0, y, 0));
+		p_out.element(m_size_x - 1, y, 0) = p_in.element(m_size_x - 1, y, 0) + force *
+		(p_in.element(m_size_x - 1, y - 1, 0) +
+			p_in.element(m_size_x - 1, y + 1, 0) +
+			p_in.element(m_size_x - 1, y, 1) +
+			p_in.element(m_size_x - 2, y, 0) -
+			4.0f *p_in.element(m_size_x - 1, y, 0));
+		p_out.element(0, y, m_size_z - 1) = p_in.element(0, y, m_size_z - 1) + force *
+		(p_in.element(0, y - 1, m_size_z - 1) +
+			p_in.element(0, y + 1, m_size_z - 1) +
+			p_in.element(0, y, m_size_z - 2) +
+			p_in.element(1, y, m_size_z - 1) -
+			4.0f *p_in.element(0, y, m_size_z - 1));
+		p_out.element(m_size_x - 1, y, m_size_z - 1) = p_in.element(m_size_x - 1, y, m_size_z - 1) + force *
+		(p_in.element(m_size_x - 1, y - 1, m_size_z - 1) +
+			p_in.element(m_size_x - 1, y + 1, m_size_z - 1) +
+			p_in.element(m_size_x - 1, y, m_size_z - 2) +
+			p_in.element(m_size_x - 2, y, m_size_z - 1) -
+			4.0f *p_in.element(m_size_x - 1, y, m_size_z - 1));
 	}
 
 	// Iterate through cells along the z axis.  4 neighbors total.
 	for (int32 z = 1; z < m_size_z - 1; z++) {
-		p_out->element(0, 0, z) = p_in->element(0, 0, z) + force *
-		(p_in->element(0, 0, z - 1) +
-			p_in->element(0, 0, z + 1) +
-			p_in->element(1, 0, z) +
-			p_in->element(0, 1, z) - 4.0f * p_in->element(0, 0, z));
-		p_out->element(m_size_x - 1, 0, z) = p_in->element(m_size_x - 1, 0, z) + force *
-		(p_in->element(m_size_x - 1, 0, z - 1) +
-			p_in->element(m_size_x - 1, 0, z + 1) +
-			p_in->element(m_size_x - 2, 0, z) +
-			p_in->element(m_size_x - 1, 1, z) -
-			4.0f *p_in->element(m_size_x - 1, 0, z));
-		p_out->element(0, m_size_y - 1, z) = p_in->element(0, m_size_y - 1, z) + force *
-		(p_in->element(0, m_size_y - 1, z - 1) +
-			p_in->element(0, m_size_y - 1, z + 1) +
-			p_in->element(1, m_size_y - 1, z) +
-			p_in->element(0, m_size_y - 2, z) -
-			4.0f *p_in->element(0, m_size_y - 1, z));
-		p_out->element(m_size_x - 1, m_size_y - 1, z) = p_in->element(m_size_x - 1, m_size_y - 1, z) + force *
-		(p_in->element(m_size_x - 1, m_size_y - 1, z - 1) +
-			p_in->element(m_size_x - 1, m_size_y - 1, z + 1) +
-			p_in->element(m_size_x - 2, m_size_y - 1, z) +
-			p_in->element(m_size_x - 1, m_size_y - 2, z) -
-			4.0f *p_in->element(m_size_x - 1, m_size_y - 1, z));
+		p_out.element(0, 0, z) = p_in.element(0, 0, z) + force *
+		(p_in.element(0, 0, z - 1) +
+			p_in.element(0, 0, z + 1) +
+			p_in.element(1, 0, z) +
+			p_in.element(0, 1, z) - 4.0f * p_in.element(0, 0, z));
+		p_out.element(m_size_x - 1, 0, z) = p_in.element(m_size_x - 1, 0, z) + force *
+		(p_in.element(m_size_x - 1, 0, z - 1) +
+			p_in.element(m_size_x - 1, 0, z + 1) +
+			p_in.element(m_size_x - 2, 0, z) +
+			p_in.element(m_size_x - 1, 1, z) -
+			4.0f *p_in.element(m_size_x - 1, 0, z));
+		p_out.element(0, m_size_y - 1, z) = p_in.element(0, m_size_y - 1, z) + force *
+		(p_in.element(0, m_size_y - 1, z - 1) +
+			p_in.element(0, m_size_y - 1, z + 1) +
+			p_in.element(1, m_size_y - 1, z) +
+			p_in.element(0, m_size_y - 2, z) -
+			4.0f *p_in.element(0, m_size_y - 1, z));
+		p_out.element(m_size_x - 1, m_size_y - 1, z) = p_in.element(m_size_x - 1, m_size_y - 1, z) + force *
+		(p_in.element(m_size_x - 1, m_size_y - 1, z - 1) +
+			p_in.element(m_size_x - 1, m_size_y - 1, z + 1) +
+			p_in.element(m_size_x - 2, m_size_y - 1, z) +
+			p_in.element(m_size_x - 1, m_size_y - 2, z) -
+			4.0f *p_in.element(m_size_x - 1, m_size_y - 1, z));
 	}
 
 	// Diffuse the last 8 corner cells.  3 neighbors total.
-	p_out->element(0, 0, 0) = p_in->element(0, 0, 0) + force *
-	(p_in->element(1, 0, 0) +
-		p_in->element(0, 1, 0) +
-		p_in->element(0, 0, 1) - 3.0f * p_in->element(0, 0, 0));
-	p_out->element(m_size_x - 1, 0, 0) = p_in->element(m_size_x - 1, 0, 0) + force *
-	(p_in->element(m_size_x - 2, 0, 0) +
-		p_in->element(m_size_x - 1, 1, 0) +
-		p_in->element(m_size_x - 1, 0, 1) -
-		3.0f * p_in->element(m_size_x - 1, 0, 0));
-	p_out->element(0, m_size_y - 1, 0) = p_in->element(0, m_size_y - 1, 0) + force *
-	(p_in->element(1, m_size_y - 1, 0) +
-		p_in->element(0, m_size_y - 2, 0) +
-		p_in->element(0, m_size_y - 1, 1) -
-		3.0f * p_in->element(0, m_size_y - 1, 0));
-	p_out->element(m_size_x - 1, m_size_y - 1, 0) = p_in->element(m_size_x - 1, m_size_y - 1, 0) + force *
-	(p_in->element(m_size_x - 2, m_size_y - 1, 0) +
-		p_in->element(m_size_x - 1, m_size_y - 2, 0) +
-		p_in->element(m_size_x - 1, m_size_y - 1, 1) -
-		3.0f *p_in->element(m_size_x - 1, m_size_y - 1, 0));
-	p_out->element(0, 0, m_size_z - 1) = p_in->element(0, 0, m_size_z - 1) + force *
-	(p_in->element(1, 0, m_size_z - 1) +
-		p_in->element(0, 1, m_size_z - 1) +
-		p_in->element(0, 0, m_size_z - 2) -
-		3.0f * p_in->element(0, 0, m_size_z - 1));
-	p_out->element(m_size_x - 1, 0, m_size_z - 1) = p_in->element(m_size_x - 1, 0, m_size_z - 1) + force *
-	(p_in->element(m_size_x - 2, 0, m_size_z - 1) +
-		p_in->element(m_size_x - 1, 1, m_size_z - 1) +
-		p_in->element(m_size_x - 1, 0, m_size_z - 2) - 3.0f *
-		p_in->element(m_size_x - 1, 0, m_size_z - 1));
-	p_out->element(0, m_size_y - 1, m_size_z - 1) = p_in->element(0, m_size_y - 1, m_size_z - 1) + force *
-	(p_in->element(1, m_size_y - 1, m_size_z - 1) +
-		p_in->element(0, m_size_y - 2, m_size_z - 1) +
-		p_in->element(0, m_size_y - 1, m_size_z - 2) -
-		3.0f *p_in->element(0, m_size_y - 1, m_size_z - 1));
-	p_out->element(m_size_x - 1, m_size_y - 1, m_size_z - 1) =
-			p_in->element(m_size_x - 1, m_size_y - 1, m_size_z - 1) + force *
-			(p_in->element(m_size_x - 2, m_size_y - 1, m_size_z - 1) +
-				p_in->element(m_size_x - 1, m_size_y - 2, m_size_z - 1) +
-				p_in->element(m_size_x - 1, m_size_y - 1, m_size_z - 2) - 
-				3.0f *p_in->element(m_size_x - 1, m_size_y - 1, m_size_z - 1));
+	p_out.element(0, 0, 0) = p_in.element(0, 0, 0) + force *
+	(p_in.element(1, 0, 0) +
+		p_in.element(0, 1, 0) +
+		p_in.element(0, 0, 1) - 3.0f * p_in.element(0, 0, 0));
+	p_out.element(m_size_x - 1, 0, 0) = p_in.element(m_size_x - 1, 0, 0) + force *
+	(p_in.element(m_size_x - 2, 0, 0) +
+		p_in.element(m_size_x - 1, 1, 0) +
+		p_in.element(m_size_x - 1, 0, 1) -
+		3.0f * p_in.element(m_size_x - 1, 0, 0));
+	p_out.element(0, m_size_y - 1, 0) = p_in.element(0, m_size_y - 1, 0) + force *
+	(p_in.element(1, m_size_y - 1, 0) +
+		p_in.element(0, m_size_y - 2, 0) +
+		p_in.element(0, m_size_y - 1, 1) -
+		3.0f * p_in.element(0, m_size_y - 1, 0));
+	p_out.element(m_size_x - 1, m_size_y - 1, 0) = p_in.element(m_size_x - 1, m_size_y - 1, 0) + force *
+	(p_in.element(m_size_x - 2, m_size_y - 1, 0) +
+		p_in.element(m_size_x - 1, m_size_y - 2, 0) +
+		p_in.element(m_size_x - 1, m_size_y - 1, 1) -
+		3.0f *p_in.element(m_size_x - 1, m_size_y - 1, 0));
+	p_out.element(0, 0, m_size_z - 1) = p_in.element(0, 0, m_size_z - 1) + force *
+	(p_in.element(1, 0, m_size_z - 1) +
+		p_in.element(0, 1, m_size_z - 1) +
+		p_in.element(0, 0, m_size_z - 2) -
+		3.0f * p_in.element(0, 0, m_size_z - 1));
+	p_out.element(m_size_x - 1, 0, m_size_z - 1) = p_in.element(m_size_x - 1, 0, m_size_z - 1) + force *
+	(p_in.element(m_size_x - 2, 0, m_size_z - 1) +
+		p_in.element(m_size_x - 1, 1, m_size_z - 1) +
+		p_in.element(m_size_x - 1, 0, m_size_z - 2) - 3.0f *
+		p_in.element(m_size_x - 1, 0, m_size_z - 1));
+	p_out.element(0, m_size_y - 1, m_size_z - 1) = p_in.element(0, m_size_y - 1, m_size_z - 1) + force *
+	(p_in.element(1, m_size_y - 1, m_size_z - 1) +
+		p_in.element(0, m_size_y - 2, m_size_z - 1) +
+		p_in.element(0, m_size_y - 1, m_size_z - 2) -
+		3.0f *p_in.element(0, m_size_y - 1, m_size_z - 1));
+	p_out.element(m_size_x - 1, m_size_y - 1, m_size_z - 1) =
+			p_in.element(m_size_x - 1, m_size_y - 1, m_size_z - 1) + force *
+			(p_in.element(m_size_x - 2, m_size_y - 1, m_size_z - 1) +
+				p_in.element(m_size_x - 1, m_size_y - 2, m_size_z - 1) +
+				p_in.element(m_size_x - 1, m_size_y - 1, m_size_z - 2) - 
+				3.0f *p_in.element(m_size_x - 1, m_size_y - 1, m_size_z - 1));
 
 	// Iterate through all the remaining cells that are not touching a boundary.  6 neighbors total.
 	for (int32 x = 1; x < m_size_x - 1; x++) {
 		for (int32 y = 1; y < m_size_y - 1; y++) {
 			for (int32 z = 1; z < m_size_z - 1; z++) {
-				p_out->element(x, y, z) = p_in->element(x, y, z) + force *
-				(p_in->element(x, y, z + 1) +
-					p_in->element(x, y, z - 1) +
-					p_in->element(x, y + 1, z) +
-					p_in->element(x, y - 1, z) +
-					p_in->element(x + 1, y, z) +
-					p_in->element(x - 1, y, z) -
-					6.0f * p_in->element(x, y, z));
+				p_out.element(x, y, z) = p_in.element(x, y, z) + force *
+				(p_in.element(x, y, z + 1) +
+					p_in.element(x, y, z - 1) +
+					p_in.element(x, y + 1, z) +
+					p_in.element(x, y - 1, z) +
+					p_in.element(x + 1, y, z) +
+					p_in.element(x - 1, y, z) -
+					6.0f * p_in.element(x, y, z));
 			}
 		}
 	}
 }
 
-void FluidSimulation3D::DiffusionStable(TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_in,
-                                        TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_out, const float scale) const {
+void FluidSimulation3D::DiffusionStable(const Fluid3D& p_in, Fluid3D& p_out, float scale) const {
 	float force = m_dt * scale;
 
 	if (FMath::IsNegativeFloat(force) || FMath::IsNearlyZero(force))
@@ -689,14 +684,14 @@ void FluidSimulation3D::DiffusionStable(TSharedPtr<Fluid3D, ESPMode::ThreadSafe>
 	for (int32 x = 1; x < m_size_x - 1; x++) {
 		for (int32 y = 1; y < m_size_y - 1; y++) {
 			for (int32 z = 1; z < m_size_z - 1; z++) {
-				p_out->element(x, y, z) = p_in->element(x, y, z) + force *
-				(p_in->element(x, y, z + 1) +
-					p_in->element(x, y, z - 1) +
-					p_in->element(x, y + 1, z) +
-					p_in->element(x, y - 1, z) +
-					p_in->element(x + 1, y, z) +
-					p_in->element(x - 1, y, z) -
-					6.0f * p_in->element(x, y, z));
+				p_out.element(x, y, z) = p_in.element(x, y, z) + force *
+				(p_in.element(x, y, z + 1) +
+					p_in.element(x, y, z - 1) +
+					p_in.element(x, y + 1, z) +
+					p_in.element(x, y - 1, z) +
+					p_in.element(x + 1, y, z) +
+					p_in.element(x - 1, y, z) -
+					6.0f * p_in.element(x, y, z));
 			}
 		}
 	}
@@ -705,32 +700,31 @@ void FluidSimulation3D::DiffusionStable(TSharedPtr<Fluid3D, ESPMode::ThreadSafe>
 	// Iterate through cells along the left and right surfaces
 	for (int32 x = 0; x < m_size_x; x++) {
 		for (int32 z = 0; z < m_size_z; z++) {
-			p_out->element(x, 0, z) = 0.0f;
-			p_out->element(x, m_size_y - 1, z) = 0.0f;
+			p_out.element(x, 0, z) = 0.0f;
+			p_out.element(x, m_size_y - 1, z) = 0.0f;
 		}
 	}
 	// Iterate through cells along the front and back surfaces
 	for (int32 y = 0; y < m_size_y; y++) {
 		for (int32 z = 0; z < m_size_z; z++) {
-			p_out->element(0, y, z) = 0.0f;
-			p_out->element(m_size_x - 1, y, z) = 0.0f;
+			p_out.element(0, y, z) = 0.0f;
+			p_out.element(m_size_x - 1, y, z) = 0.0f;
 		}
 	}
 
 	// Iterate through cells along the top and bottom surfaces
 	for (int32 x = 0; x < m_size_x; x++) {
 		for (int32 y = 0; y < m_size_y; y++) {
-			p_out->element(x, y, 0) = 0.0f;
-			p_out->element(x, y, m_size_z - 1) = 0.0f;
+			p_out.element(x, y, 0) = 0.0f;
+			p_out.element(x, y, m_size_z - 1) = 0.0f;
 		}
 	}
 }
 
 // Signed advection is mass conserving, but allows signed quantities 
 // so could be used for velocity, since it's faster.
-void
-FluidSimulation3D::ReverseSignedAdvection(TSharedPtr<VelPkg3D, ESPMode::ThreadSafe> v, const float advectScale) const {
-	auto scale = v->Properties()->advection * advectScale;
+void FluidSimulation3D::ReverseSignedAdvection(VelPkg3D& v, const float advectScale) const {
+	auto scale = v.Properties().advection * advectScale;
 	// negate advection scale, since it's reverse advection
 	auto force = -m_dt * scale;
 	float vx, vy, vz; // velocity values of the current x,y,z locations
@@ -749,16 +743,16 @@ FluidSimulation3D::ReverseSignedAdvection(TSharedPtr<VelPkg3D, ESPMode::ThreadSa
 		return;
 	}
 	// First copy the scalar values over, since we are adding/subtracting in values, not moving things
-	Fluid3D velOutX = *v->DestinationX();
-	Fluid3D velOutY = *v->DestinationY();
-	Fluid3D velOutZ = *v->DestinationZ();
+	Fluid3D velOutX = v.DestinationX();
+	Fluid3D velOutY = v.DestinationY();
+	Fluid3D velOutZ = v.DestinationZ();
 
 	for (int32 x = 1; x < m_size_x - 1; x++) {
 		for (int32 y = 1; y < m_size_y - 1; y++) {
 			for (int32 z = 1; z < m_size_z - 1; z++) {
-				vx = mp_velocity->SourceX()->element(x, y, z);
-				vy = mp_velocity->SourceY()->element(x, y, z);
-				vz = mp_velocity->SourceZ()->element(x, y, z);
+				vx = mp_velocity->SourceX().element(x, y, z);
+				vy = mp_velocity->SourceY().element(x, y, z);
+				vz = mp_velocity->SourceZ().element(x, y, z);
 				if (!FMath::IsNearlyZero(vx) || !FMath::IsNearlyZero(vy) || !FMath::IsNearlyZero(vz)) {
 					// Find the floating point location of the advection
 					// x, y, z locations after advection
@@ -779,34 +773,34 @@ FluidSimulation3D::ReverseSignedAdvection(TSharedPtr<VelPkg3D, ESPMode::ThreadSa
 					fz1 = z1 - z1A;
 
 					// Get amounts from (in) source cells for X velocity
-					A_X = (1.0f - fx1) * (1.0f - fy1) * (1.0f - fz1) * v->DestinationX()->element(x1A, y1A, z1A);
-					B_X = (fx1) * (1.0f - fy1) * (1.0f - fz1) * v->DestinationX()->element(x1A + 1, y1A, z1A);
-					C_X = (1.0f - fx1) * (fy1) * (1.0f - fz1) * v->DestinationX()->element(x1A, y1A + 1, z1A);
-					D_X = (fx1) * (fy1) * (1.0f - fz1) * v->DestinationX()->element(x1A + 1, y1A + 1, z1A);
-					E_X = (1.0f - fx1) * (1.0f - fy1) * (fz1) * v->DestinationX()->element(x1A, y1A, z1A + 1);
-					F_X = (fx1) * (1.0f - fy1) * (fz1) * v->DestinationX()->element(x1A + 1, y1A, z1A + 1);
-					G_X = (1.0f - fx1) * (fy1) * (fz1) * v->DestinationX()->element(x1A, y1A + 1, z1A + 1);
-					H_X = (fx1) * (fy1) * (fz1) * v->DestinationX()->element(x1A + 1, y1A + 1, z1A + 1);
+					A_X = (1.0f - fx1) * (1.0f - fy1) * (1.0f - fz1) * v.DestinationX().element(x1A, y1A, z1A);
+					B_X = (fx1) * (1.0f - fy1) * (1.0f - fz1) * v.DestinationX().element(x1A + 1, y1A, z1A);
+					C_X = (1.0f - fx1) * (fy1) * (1.0f - fz1) * v.DestinationX().element(x1A, y1A + 1, z1A);
+					D_X = (fx1) * (fy1) * (1.0f - fz1) * v.DestinationX().element(x1A + 1, y1A + 1, z1A);
+					E_X = (1.0f - fx1) * (1.0f - fy1) * (fz1) * v.DestinationX().element(x1A, y1A, z1A + 1);
+					F_X = (fx1) * (1.0f - fy1) * (fz1) * v.DestinationX().element(x1A + 1, y1A, z1A + 1);
+					G_X = (1.0f - fx1) * (fy1) * (fz1) * v.DestinationX().element(x1A, y1A + 1, z1A + 1);
+					H_X = (fx1) * (fy1) * (fz1) * v.DestinationX().element(x1A + 1, y1A + 1, z1A + 1);
 
 					// Get amounts from (in) source cells for Y velocity
-					A_Y = (1.0f - fx1) * (1.0f - fy1) * (1.0f - fz1) * v->DestinationY()->element(x1A, y1A, z1A);
-					B_Y = (fx1) * (1.0f - fy1) * (1.0f - fz1) * v->DestinationY()->element(x1A + 1, y1A, z1A);
-					C_Y = (1.0f - fx1) * (fy1) * (1.0f - fz1) * v->DestinationY()->element(x1A, y1A + 1, z1A);
-					D_Y = (fx1) * (fy1) * (1.0f - fz1) * v->DestinationY()->element(x1A + 1, y1A + 1, z1A);
-					E_Y = (1.0f - fx1) * (1.0f - fy1) * (fz1) * v->DestinationY()->element(x1A, y1A, z1A + 1);
-					F_Y = (fx1) * (1.0f - fy1) * (fz1) * v->DestinationY()->element(x1A + 1, y1A, z1A + 1);
-					G_Y = (1.0f - fx1) * (fy1) * (fz1) * v->DestinationY()->element(x1A, y1A + 1, z1A + 1);
-					H_Y = (fx1) * (fy1) * (fz1) * v->DestinationY()->element(x1A + 1, y1A + 1, z1A + 1);
+					A_Y = (1.0f - fx1) * (1.0f - fy1) * (1.0f - fz1) * v.DestinationY().element(x1A, y1A, z1A);
+					B_Y = (fx1) * (1.0f - fy1) * (1.0f - fz1) * v.DestinationY().element(x1A + 1, y1A, z1A);
+					C_Y = (1.0f - fx1) * (fy1) * (1.0f - fz1) * v.DestinationY().element(x1A, y1A + 1, z1A);
+					D_Y = (fx1) * (fy1) * (1.0f - fz1) * v.DestinationY().element(x1A + 1, y1A + 1, z1A);
+					E_Y = (1.0f - fx1) * (1.0f - fy1) * (fz1) * v.DestinationY().element(x1A, y1A, z1A + 1);
+					F_Y = (fx1) * (1.0f - fy1) * (fz1) * v.DestinationY().element(x1A + 1, y1A, z1A + 1);
+					G_Y = (1.0f - fx1) * (fy1) * (fz1) * v.DestinationY().element(x1A, y1A + 1, z1A + 1);
+					H_Y = (fx1) * (fy1) * (fz1) * v.DestinationY().element(x1A + 1, y1A + 1, z1A + 1);
 
 					// Get amounts from (in) source cells for Z velocity
-					A_Z = (1.0f - fx1) * (1.0f - fy1) * (1.0f - fz1) * v->DestinationZ()->element(x1A, y1A, z1A);
-					B_Z = (fx1) * (1.0f - fy1) * (1.0f - fz1) * v->DestinationZ()->element(x1A + 1, y1A, z1A);
-					C_Z = (1.0f - fx1) * (fy1) * (1.0f - fz1) * v->DestinationZ()->element(x1A, y1A + 1, z1A);
-					D_Z = (fx1) * (fy1) * (1.0f - fz1) * v->DestinationZ()->element(x1A + 1, y1A + 1, z1A);
-					E_Z = (1.0f - fx1) * (1.0f - fy1) * (fz1) * v->DestinationZ()->element(x1A, y1A, z1A + 1);
-					F_Z = (fx1) * (1.0f - fy1) * (fz1) * v->DestinationZ()->element(x1A + 1, y1A, z1A + 1);
-					G_Z = (1.0f - fx1) * (fy1) * (fz1) * v->DestinationZ()->element(x1A, y1A + 1, z1A + 1);
-					H_Z = (fx1) * (fy1) * (fz1) * v->DestinationZ()->element(x1A + 1, y1A + 1, z1A + 1);
+					A_Z = (1.0f - fx1) * (1.0f - fy1) * (1.0f - fz1) * v.DestinationZ().element(x1A, y1A, z1A);
+					B_Z = (fx1) * (1.0f - fy1) * (1.0f - fz1) * v.DestinationZ().element(x1A + 1, y1A, z1A);
+					C_Z = (1.0f - fx1) * (fy1) * (1.0f - fz1) * v.DestinationZ().element(x1A, y1A + 1, z1A);
+					D_Z = (fx1) * (fy1) * (1.0f - fz1) * v.DestinationZ().element(x1A + 1, y1A + 1, z1A);
+					E_Z = (1.0f - fx1) * (1.0f - fy1) * (fz1) * v.DestinationZ().element(x1A, y1A, z1A + 1);
+					F_Z = (fx1) * (1.0f - fy1) * (fz1) * v.DestinationZ().element(x1A + 1, y1A, z1A + 1);
+					G_Z = (1.0f - fx1) * (fy1) * (fz1) * v.DestinationZ().element(x1A, y1A + 1, z1A + 1);
+					H_Z = (fx1) * (fy1) * (fz1) * v.DestinationZ().element(x1A + 1, y1A + 1, z1A + 1);
 
 					// X Velocity
 					// add to (out) source cell
@@ -857,9 +851,9 @@ FluidSimulation3D::ReverseSignedAdvection(TSharedPtr<VelPkg3D, ESPMode::ThreadSa
 		}
 	}
 
-	*v->SourceX() = velOutX;
-	*v->SourceY() = velOutY;
-	*v->SourceZ() = velOutZ;
+	v.SourceX() = velOutX;
+	v.SourceY() = velOutY;
+	v.SourceZ() = velOutZ;
 }
 
 // Checks if destination point during advection is out of bounds and pulls point in if needed
@@ -921,48 +915,48 @@ bool FluidSimulation3D::IsSolid(int32 this_x, int32 this_y, int32 this_z) const 
 void FluidSimulation3D::PressureAcceleration(const float scale) const {
 	float force = m_dt * scale;
 
-	*mp_velocity->DestinationX() = *mp_velocity->SourceX();
-	*mp_velocity->DestinationY() = *mp_velocity->SourceY();
-	*mp_velocity->DestinationZ() = *mp_velocity->SourceZ();
+	mp_velocity->DestinationX() = mp_velocity->SourceX();
+	mp_velocity->DestinationY() = mp_velocity->SourceY();
+	mp_velocity->DestinationZ() = mp_velocity->SourceZ();
 
 	for (int32 x = 0; x < m_size_x - 1; x++) {
 		for (int32 y = 0; y < m_size_y - 1; y++) {
 			for (int32 z = 0; z < m_size_z - 1; z++) {
 				// Pressure differential between points to get an accelleration force.
-				float src_press = mp_pressure->SourceO2()->element(x, y, z) +
-						mp_pressure->SourceN2()->element(x, y, z) +
-						mp_pressure->SourceCO2()->element(x, y, z) +
-						mp_pressure->SourceToxin()->element(x, y, z);
+				float src_press = mp_pressure->SourceO2().element(x, y, z) +
+						mp_pressure->SourceN2().element(x, y, z) +
+						mp_pressure->SourceCO2().element(x, y, z) +
+						mp_pressure->SourceToxin().element(x, y, z);
 				//if (!EqualToZero(src_press))
 				//    src_press = mp_pressure_O2->Source()->element(x, y, z) / src_press +
 				//                mp_pressure_N2->Source()->element(x, y, z) / src_press +
 				//                mp_pressure_C02->Source()->element(x, y, z) / src_press +
 				//                mp_pressure_Toxin->Source()->element(x, y, z) / src_press;
 
-				float dest_x = mp_pressure->SourceO2()->element(x + 1, y, z) +
-						mp_pressure->SourceN2()->element(x + 1, y, z) +
-						mp_pressure->SourceCO2()->element(x + 1, y, z) +
-						mp_pressure->SourceToxin()->element(x + 1, y, z);
+				float dest_x = mp_pressure->SourceO2().element(x + 1, y, z) +
+						mp_pressure->SourceN2().element(x + 1, y, z) +
+						mp_pressure->SourceCO2().element(x + 1, y, z) +
+						mp_pressure->SourceToxin().element(x + 1, y, z);
 				//if (!EqualToZero(dest_x))
 				//    dest_x = mp_pressure_O2->Source()->element(x + 1, y, z) / dest_x +
 				//            mp_pressure_N2->Source()->element(x + 1, y, z) / dest_x +
 				//            mp_pressure_C02->Source()->element(x + 1, y, z) / dest_x +
 				//            mp_pressure_Toxin->Source()->element(x + 1, y, z) / dest_x;
 
-				float dest_y = mp_pressure->SourceO2()->element(x, y + 1, z) +
-						mp_pressure->SourceN2()->element(x, y + 1, z) +
-						mp_pressure->SourceCO2()->element(x, y + 1, z) +
-						mp_pressure->SourceToxin()->element(x, y + 1, z);
+				float dest_y = mp_pressure->SourceO2().element(x, y + 1, z) +
+						mp_pressure->SourceN2().element(x, y + 1, z) +
+						mp_pressure->SourceCO2().element(x, y + 1, z) +
+						mp_pressure->SourceToxin().element(x, y + 1, z);
 				//if (!EqualToZero(dest_y))
 				//    dest_y = mp_pressure_O2->Source()->element(x, y + 1, z) / dest_y +
 				//             mp_pressure_N2->Source()->element(x, y + 1, z) / dest_y +
 				//             mp_pressure_C02->Source()->element(x, y + 1, z) / dest_y +
 				//             mp_pressure_Toxin->Source()->element(x, y + 1, z) / dest_y;
 
-				float dest_z = mp_pressure->SourceO2()->element(x, y, z + 1) +
-						mp_pressure->SourceN2()->element(x, y, z + 1) +
-						mp_pressure->SourceCO2()->element(x, y, z + 1) +
-						mp_pressure->SourceToxin()->element(x, y, z + 1);
+				float dest_z = mp_pressure->SourceO2().element(x, y, z + 1) +
+						mp_pressure->SourceN2().element(x, y, z + 1) +
+						mp_pressure->SourceCO2().element(x, y, z + 1) +
+						mp_pressure->SourceToxin().element(x, y, z + 1);
 				//if (!EqualToZero(dest_z))
 				//    dest_z = mp_pressure_O2->Source()->element(x, y, z + 1) / dest_z +
 				//             mp_pressure_N2->Source()->element(x, y, z + 1) / dest_z +
@@ -976,14 +970,14 @@ void FluidSimulation3D::PressureAcceleration(const float scale) const {
 				// Use the acceleration force to move the velocity field in the appropriate direction.
 				// Ex. If an area of high pressure exists the acceleration force will turn the velocity field
 				// away from this area
-				mp_velocity->DestinationX()->element(x, y, z) += force * force_x;
-				mp_velocity->DestinationX()->element(x + 1, y, z) += force * force_x;
+				mp_velocity->DestinationX().element(x, y, z) += force * force_x;
+				mp_velocity->DestinationX().element(x + 1, y, z) += force * force_x;
 
-				mp_velocity->DestinationY()->element(x, y, z) += force * force_y;
-				mp_velocity->DestinationY()->element(x, y + 1, z) += force * force_y;
+				mp_velocity->DestinationY().element(x, y, z) += force * force_y;
+				mp_velocity->DestinationY().element(x, y + 1, z) += force * force_y;
 
-				mp_velocity->DestinationZ()->element(x, y, z) += force * force_z;
-				mp_velocity->DestinationZ()->element(x, y, z + 1) += force * force_z;
+				mp_velocity->DestinationZ().element(x, y, z) += force * force_z;
+				mp_velocity->DestinationZ().element(x, y, z + 1) += force * force_z;
 			}
 		}
 	}
@@ -995,11 +989,11 @@ void FluidSimulation3D::PressureAcceleration(const float scale) const {
 
 // Apply a natural deceleration to forces applied to the grids
 void
-FluidSimulation3D::ExponentialDecay(TSharedPtr<Fluid3D, ESPMode::ThreadSafe> p_in_and_out, const float decay) const {
+FluidSimulation3D::ExponentialDecay(Fluid3D& p_in_and_out, const float decay) const {
 	for (int32 x = 0; x < m_size_x; x++) {
 		for (int32 y = 0; y < m_size_y; y++) {
 			for (int32 z = 0; z < m_size_z; z++) {
-				p_in_and_out->element(x, y, z) = p_in_and_out->element(x, y, z) * FMath::Pow(1 - decay, m_dt);
+				p_in_and_out.element(x, y, z) = p_in_and_out.element(x, y, z) * FMath::Pow(1 - decay, m_dt);
 			}
 		}
 	}
@@ -1013,9 +1007,9 @@ void FluidSimulation3D::VorticityConfinement(const float scale) const {
 	float length;
 	float magnitude;
 
-	mp_velocity->DestinationX()->Set(0.0f);
-	mp_velocity->DestinationY()->Set(0.0f);
-	mp_velocity->DestinationZ()->Set(0.0f);
+	mp_velocity->DestinationX().Set(0.0f);
+	mp_velocity->DestinationY().Set(0.0f);
+	mp_velocity->DestinationZ().Set(0.0f);
 
 	for (int32 i = 1; i < m_size_x - 1; i++) {
 		for (int32 j = 1; j < m_size_y - 1; j++) {
@@ -1041,16 +1035,16 @@ void FluidSimulation3D::VorticityConfinement(const float scale) const {
 
 				magnitude = Curl(x, y, z);
 
-				mp_velocity->DestinationX()->element(x, y, z) = -ud_curl * magnitude;
-				mp_velocity->DestinationY()->element(x, y, z) = lr_curl * magnitude;
-				mp_velocity->DestinationZ()->element(x, y, z) = bf_curl * magnitude;
+				mp_velocity->DestinationX().element(x, y, z) = -ud_curl * magnitude;
+				mp_velocity->DestinationY().element(x, y, z) = lr_curl * magnitude;
+				mp_velocity->DestinationZ().element(x, y, z) = bf_curl * magnitude;
 			}
 		}
 	}
 
-	*mp_velocity->SourceX() += *mp_velocity->DestinationX() * scale;
-	*mp_velocity->SourceY() += *mp_velocity->DestinationY() * scale;
-	*mp_velocity->SourceZ() += *mp_velocity->DestinationZ() * scale;
+	mp_velocity->SourceX() += mp_velocity->DestinationX() * scale;
+	mp_velocity->SourceY() += mp_velocity->DestinationY() * scale;
+	mp_velocity->SourceZ() += mp_velocity->DestinationZ() * scale;
 }
 
 // Calculate the curl at position (x,y,z) in the fluid grid. Physically this represents the vortex strength at the
@@ -1058,13 +1052,13 @@ void FluidSimulation3D::VorticityConfinement(const float scale) const {
 float FluidSimulation3D::Curl(const int32 x, const int32 y, const int32 z) const {
 	// difference in XV of cells above and below
 	// positive number is a counter-clockwise rotation
-	float x_curl = (mp_velocity->SourceX()->element(x, y + 1, z) - mp_velocity->SourceX()->element(x, y - 1, z)) * 0.5f;
+	float x_curl = (mp_velocity->SourceX().element(x, y + 1, z) - mp_velocity->SourceX().element(x, y - 1, z)) * 0.5f;
 
 	// difference in YV of cells left and right
-	float y_curl = (mp_velocity->SourceY()->element(x + 1, y, z) - mp_velocity->SourceY()->element(x - 1, y, z)) * 0.5f;
+	float y_curl = (mp_velocity->SourceY().element(x + 1, y, z) - mp_velocity->SourceY().element(x - 1, y, z)) * 0.5f;
 
 	// difference in ZV of cells front and back
-	float z_curl = (mp_velocity->SourceZ()->element(x, y, z + 1) - mp_velocity->SourceY()->element(x, y, z - 1)) * 0.5f;
+	float z_curl = (mp_velocity->SourceZ().element(x, y, z + 1) - mp_velocity->SourceY().element(x, y, z - 1)) * 0.5f;
 
 	return x_curl - y_curl - z_curl;
 }
@@ -1073,11 +1067,11 @@ float FluidSimulation3D::Curl(const int32 x, const int32 y, const int32 z) const
 void FluidSimulation3D::InvertVelocityEdges() const {
 	for (int32 y = 0; y < m_size_y; y++) {
 		for (int32 z = 0; z < m_size_z; z++) {
-			if (mp_velocity->SourceX()->element(0, y, z) < 0.0f) {
-				mp_velocity->SourceX()->element(0, y, z) = -mp_velocity->SourceX()->element(0, y, z);
+			if (mp_velocity->SourceX().element(0, y, z) < 0.0f) {
+				mp_velocity->SourceX().element(0, y, z) = -mp_velocity->SourceX().element(0, y, z);
 			}
-			if (mp_velocity->SourceX()->element(m_size_x - 1, y, z) > 0.0f) {
-				mp_velocity->SourceX()->element(m_size_x - 1, y, z) = -mp_velocity->SourceX()->element(m_size_x - 1, y,
+			if (mp_velocity->SourceX().element(m_size_x - 1, y, z) > 0.0f) {
+				mp_velocity->SourceX().element(m_size_x - 1, y, z) = -mp_velocity->SourceX().element(m_size_x - 1, y,
 				                                                                                       z);
 			}
 		}
@@ -1085,11 +1079,11 @@ void FluidSimulation3D::InvertVelocityEdges() const {
 
 	for (int32 x = 0; x < m_size_x; x++) {
 		for (int32 z = 0; z < m_size_z; z++) {
-			if (mp_velocity->SourceY()->element(x, 0, z) < 0.0f) {
-				mp_velocity->SourceY()->element(x, 0, z) = -mp_velocity->SourceY()->element(x, 0, z);
+			if (mp_velocity->SourceY().element(x, 0, z) < 0.0f) {
+				mp_velocity->SourceY().element(x, 0, z) = -mp_velocity->SourceY().element(x, 0, z);
 			}
-			if (mp_velocity->SourceY()->element(x, m_size_y - 1, z) > 0.0f) {
-				mp_velocity->SourceY()->element(x, m_size_y - 1, z) = -mp_velocity->SourceY()->element(x, m_size_y - 1,
+			if (mp_velocity->SourceY().element(x, m_size_y - 1, z) > 0.0f) {
+				mp_velocity->SourceY().element(x, m_size_y - 1, z) = -mp_velocity->SourceY().element(x, m_size_y - 1,
 				                                                                                       z);
 			}
 		}
@@ -1097,11 +1091,11 @@ void FluidSimulation3D::InvertVelocityEdges() const {
 
 	for (int32 x = 0; x < m_size_x; x++) {
 		for (int32 y = 0; y < m_size_y; y++) {
-			if (mp_velocity->SourceZ()->element(x, y, 0) < 0.0f) {
-				mp_velocity->SourceZ()->element(x, y, 0) = -mp_velocity->SourceZ()->element(x, y, 0);
+			if (mp_velocity->SourceZ().element(x, y, 0) < 0.0f) {
+				mp_velocity->SourceZ().element(x, y, 0) = -mp_velocity->SourceZ().element(x, y, 0);
 			}
-			if (mp_velocity->SourceZ()->element(x, y, m_size_z - 1) > 0.0f) {
-				mp_velocity->SourceZ()->element(x, y, m_size_z - 1) = -mp_velocity->SourceZ()->element(x, y,
+			if (mp_velocity->SourceZ().element(x, y, m_size_z - 1) > 0.0f) {
+				mp_velocity->SourceZ().element(x, y, m_size_z - 1) = -mp_velocity->SourceZ().element(x, y,
 				                                                                                       m_size_z - 1);
 			}
 		}
@@ -1113,57 +1107,4 @@ void FluidSimulation3D::Reset() const {
 	mp_pressure->Reset(1.0f);
 	mp_velocity->Reset(0.0f);
 	m_solids->Set(false);
-}
-
-// Accessor methods
-int32 FluidSimulation3D::DiffusionIterations() const {
-	return m_diffusionIter;
-}
-
-void FluidSimulation3D::DiffusionIterations(int32 value) {
-	m_diffusionIter = value;
-}
-
-float FluidSimulation3D::Vorticity() const {
-	return m_vorticity;
-}
-
-void FluidSimulation3D::Vorticity(float value) {
-	m_vorticity = value;
-}
-
-float FluidSimulation3D::PressureAccel() const {
-	return m_pressureAccel;
-}
-
-void FluidSimulation3D::PressureAccel(float value) {
-	m_pressureAccel = value;
-}
-
-float FluidSimulation3D::dt() const {
-	return m_dt;
-}
-
-void FluidSimulation3D::dt(float value) {
-	m_dt = value;
-}
-
-TSharedPtr<AtmoPkg3D, ESPMode::ThreadSafe> FluidSimulation3D::Pressure() const {
-	return mp_pressure;
-}
-
-TSharedPtr<VelPkg3D, ESPMode::ThreadSafe> FluidSimulation3D::Velocity() const {
-	return mp_velocity;
-};
-
-int32 FluidSimulation3D::Height() const {
-	return m_size_z;
-}
-
-int32 FluidSimulation3D::Width() const {
-	return m_size_x;
-}
-
-int32 FluidSimulation3D::Depth() const {
-	return m_size_y;
 }

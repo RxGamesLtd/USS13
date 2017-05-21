@@ -14,9 +14,12 @@
 // OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#include "FluidSimulation.h"
-#include "FluidSimulation3D.h"
 #include "FluidSimulationManager.h"
+
+#include "CoreMinimal.h"
+#include "AtmoStruct.h"
+#include "FluidSimulation3D.h"
+#include <functional>
 
 FFluidSimulationManager::FFluidSimulationManager() {
 	StopTaskCounter.Increment();
@@ -31,46 +34,47 @@ void FFluidSimulationManager::SetSize(FVector size) {
 				FMath::CeilToInt(size.X),
 				FMath::CeilToInt(size.Y),
 				FMath::CeilToInt(size.Z)) * 2 +
-			FIntVector(1);
+			FIntVector(2);
 }
 
 void FFluidSimulationManager::Start() {
-	Thread = MakeShareable(FRunnableThread::Create(this, TEXT("FFluidSimulationManager")));
+	Thread.Reset(FRunnableThread::Create(this, TEXT("FFluidSimulationManager")));
 }
 
 bool FFluidSimulationManager::Init() {
-	sim = MakeShareable(new FluidSimulation3D(Size.X, Size.Y, Size.Z, 0.1f));
+	sim = MakeUnique<FluidSimulation3D>(Size.X, Size.Y, Size.Z, 0.1f);
 	UE_LOG(LogFluidSimulation, Log, TEXT("Atmo thread init start"));
 
+	/*
 	TBaseDelegate<float, int32, int32, int32> binder;
-
 	binder.BindSP(this, &FFluidSimulationManager::InitializeAtmoCell, static_cast<uint32>(0));
-	sim->Pressure()->SourceO2()->Set(binder);
+	sim->Pressure().SourceO2().Set(binder);
 	UE_LOG(LogFluidSimulation, Log, TEXT("Atmo O2 values loaded"));
 
 	binder.BindSP(this, &FFluidSimulationManager::InitializeAtmoCell, static_cast<uint32>(1));
-	sim->Pressure()->SourceN2()->Set(binder);
+	sim->Pressure().SourceN2().Set(binder);
 	UE_LOG(LogFluidSimulation, Log, TEXT("Atmo N2 values loaded"));
 
 	binder.BindSP(this, &FFluidSimulationManager::InitializeAtmoCell, static_cast<uint32>(2));
-	sim->Pressure()->SourceCO2()->Set(binder);
+	sim->Pressure().SourceCO2().Set(binder);
 	UE_LOG(LogFluidSimulation, Log, TEXT("Atmo CO2 values loaded"));
 
 	binder.BindSP(this, &FFluidSimulationManager::InitializeAtmoCell, static_cast<uint32>(3));
-	sim->Pressure()->SourceToxin()->Set(binder);
+	sim->Pressure().SourceToxin().Set(binder);
 	UE_LOG(LogFluidSimulation, Log, TEXT("Atmo Toxin values loaded"));
+	*/
 
 	sim->DiffusionIterations(10);
 	sim->PressureAccel(1.0f);
 	sim->Vorticity(0.03f);
 	sim->m_bBoundaryCondition = false;
 
-	sim->Pressure()->Properties()->diffusion = 1.0f;
-	sim->Pressure()->Properties()->advection = 1.0f;
+	sim->Pressure().Properties().diffusion = 1.0f;
+	sim->Pressure().Properties().advection = 1.0f;
 
-	sim->Velocity()->Properties()->diffusion = 1.0f;
-	sim->Velocity()->Properties()->decay = 0.5f;
-	sim->Velocity()->Properties()->advection = 1.0f;
+	sim->Velocity().Properties().diffusion = 1.0f;
+	sim->Velocity().Properties().decay = 0.5f;
+	sim->Velocity().Properties().advection = 1.0f;
 
 	StopTaskCounter.Reset();
 	UE_LOG(LogFluidSimulation, Log, TEXT("Atmo thread initialized"));
@@ -118,10 +122,10 @@ FAtmoStruct FFluidSimulationManager::GetValue(int32 x, int32 y, int32 z) const {
 	auto y1 = y * 2 + 1;
 	auto z1 = z * 2 + 1;
 
-	atmo.O2 = sim->Pressure()->SourceO2()->element(x1, y1, z1);
-	atmo.N2 = sim->Pressure()->SourceN2()->element(x1, y1, z1);
-	atmo.CO2 = sim->Pressure()->SourceCO2()->element(x1, y1, z1);
-	atmo.Toxin = sim->Pressure()->SourceToxin()->element(x1, y1, z1);
+	atmo.O2		= sim->Pressure().SourceO2().element(x1, y1, z1);
+	atmo.N2		= sim->Pressure().SourceN2().element(x1, y1, z1);
+	atmo.CO2	= sim->Pressure().SourceCO2().element(x1, y1, z1);
+	atmo.Toxin	= sim->Pressure().SourceToxin().element(x1, y1, z1);
 
 	return atmo;
 }
@@ -137,9 +141,9 @@ FVector FFluidSimulationManager::GetVelocity(int32 x, int32 y, int32 z) const {
 	if (z < 0 || z >= cells.Z)
 		return FVector();
 
-	auto sourceX = sim->Velocity()->SourceX()->element(x, y, z);
-	auto sourceY = sim->Velocity()->SourceY()->element(x, y, z);
-	auto sourceZ = sim->Velocity()->SourceZ()->element(x, y, z);
+	auto sourceX = sim->Velocity().SourceX().element(x, y, z);
+	auto sourceY = sim->Velocity().SourceY().element(x, y, z);
+	auto sourceZ = sim->Velocity().SourceZ().element(x, y, z);
 	auto val = FVector(sourceX, sourceY, sourceZ);
 
 	return val;

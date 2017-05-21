@@ -24,8 +24,8 @@
 
 #pragma once
 
+#include "FluidSimulation.h"
 #include "Array3D.h"
-#include "Platform.h"
 
 // Adds fluid specific functions to class Array3D
 class Fluid3D : public TArray3D<float> {

@@ -16,12 +16,11 @@
 
 #pragma once
 
-#include "FluidSimulation3D.h"
-#include "AtmoStruct.h"
-#include "Platform.h"
-#include "SharedPointer.h"
+#include "FluidSimulation.h"
 
-class FLUIDSIMULATION_API FFluidSimulationManager : public TSharedFromThis<FFluidSimulationManager>, public FRunnable {
+class FLUIDSIMULATION_API FFluidSimulationManager 
+	: public TSharedFromThis<FFluidSimulationManager>
+	, public FRunnable {
 public:
 	FFluidSimulationManager();
 
@@ -43,17 +42,17 @@ public:
 
 	void Stop() override;
 
-	FAtmoStruct GetValue(int32 x, int32 y, int32 z) const;
+	struct FAtmoStruct GetValue(int32 x, int32 y, int32 z) const;
 
 	FVector GetVelocity(int32 x, int32 y, int32 z) const;
 
 private:
 	/** SimulationObject */
-	TSharedPtr<FluidSimulation3D, ESPMode::ThreadSafe> sim;
+	TUniquePtr<class FluidSimulation3D> sim;
 	/** Thread to run the worker FRunnable on */
-	TSharedPtr<FRunnableThread> Thread;
+	TUniquePtr<class FRunnableThread> Thread;
 	/** Stop this thread? Uses Thread Safe Counter */
-	FThreadSafeCounter StopTaskCounter;
+	class FThreadSafeCounter StopTaskCounter;
 
 protected:
 	float InitializeAtmoCell(int32 x, int32 y, int32 z, uint32 type) const;

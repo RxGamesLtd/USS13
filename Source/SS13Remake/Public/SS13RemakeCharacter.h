@@ -20,7 +20,6 @@
 #include "SS13RemakeCharacter.generated.h"
 
 UCLASS(Blueprintable)
-
 class ASS13RemakeCharacter : public ACharacter {
     GENERATED_BODY()
 

@@ -16,10 +16,10 @@
 
 #pragma once
 
-#include "FluidSimulation.h"
 #include "Private/GridUtils.h"
 #include "AtmoStruct.h"
 #include "FluidSimulationManager.h"
+#include "EngineMinimal.h"
 #include "WorldGrid.generated.h"
 
 UCLASS()
@@ -53,5 +53,5 @@ protected:
 
     FAtmoStruct GetAtmoStatusByIndex(int32 x, int32 y, int32 z) const;
 
-    TSharedPtr<FFluidSimulationManager> AtmosManager;
+    TUniquePtr<FFluidSimulationManager> AtmosManager;
 };

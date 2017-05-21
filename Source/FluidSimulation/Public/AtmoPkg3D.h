@@ -24,10 +24,9 @@
 
 #pragma once
 
+#include "FluidSimulation.h"
 #include "Fluid3D.h"
 #include "FluidProperties.h"
-#include "Platform.h"
-#include "SharedPointer.h"
 
 class AtmoPkg3D {
 public:
@@ -35,6 +34,7 @@ public:
 	// Constructor - Initilizes source and destination FLuid3D objects for atmo in X, Y, Z directions
 	AtmoPkg3D(int32 xSize, int32 ySize, int32 zSize);
 
+	AtmoPkg3D(const AtmoPkg3D& right);
 	// Assignment Operator
 	AtmoPkg3D& operator=(const AtmoPkg3D& right);
 
@@ -45,34 +45,30 @@ public:
 	void Reset(float v) const;
 
 	// Accessors
-	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> SourceO2() const;
+	Fluid3D& SourceO2() { return *mp_sourceO2; }
+	Fluid3D& DestinationO2() { return *mp_destO2; }
 
-	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> DestinationO2() const;
+	Fluid3D& SourceN2() { return *mp_sourceN2; }
+	Fluid3D& DestinationN2() { return *mp_destN2; }
 
-	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> SourceN2() const;
+	Fluid3D& SourceCO2() { return *mp_sourceCO2; }
+	Fluid3D& DestinationCO2() { return *mp_destCO2; }
 
-	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> DestinationN2() const;
+	Fluid3D& SourceToxin() { return *mp_sourceToxin; }
+	Fluid3D& DestinationToxin() { return *mp_destToxin; }
 
-	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> SourceCO2() const;
-
-	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> DestinationCO2() const;
-
-	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> SourceToxin() const;
-
-	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> DestinationToxin() const;
-
-	TSharedPtr<FluidProperties, ESPMode::ThreadSafe> Properties() const;
+	FluidProperties& Properties() { return *mp_prop; }
 
 private:
-	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_sourceO2; // source  for velocity in X direction
-	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_destO2; // destination for velocity in X direction
-	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_sourceN2; // source for velocity in Y direction
-	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_destN2; // destination for velocity in Y direction
-	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_sourceCO2; // source for velocity in Z direction
-	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_destCO2; // destination for velocity in Z direction
-	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_sourceToxin; // source for velocity in Z direction
-	TSharedPtr<Fluid3D, ESPMode::ThreadSafe> mp_destToxin; // destination for velocity in Z direction
-	TSharedPtr<FluidProperties, ESPMode::ThreadSafe> mp_prop;
+	TUniquePtr<Fluid3D> mp_sourceO2;	// source  for velocity in X direction
+	TUniquePtr<Fluid3D> mp_destO2;		// destination for velocity in X direction
+	TUniquePtr<Fluid3D> mp_sourceN2;	// source for velocity in Y direction
+	TUniquePtr<Fluid3D> mp_destN2;		// destination for velocity in Y direction
+	TUniquePtr<Fluid3D> mp_sourceCO2;	// source for velocity in Z direction
+	TUniquePtr<Fluid3D> mp_destCO2;		// destination for velocity in Z direction
+	TUniquePtr<Fluid3D> mp_sourceToxin; // source for velocity in Z direction
+	TUniquePtr<Fluid3D> mp_destToxin;	// destination for velocity in Z direction
+	TUniquePtr<FluidProperties> mp_prop;
 	int32 m_X;
 	int32 m_Y;
 	int32 m_Z;
