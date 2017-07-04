@@ -18,7 +18,7 @@
 
 #include "FogOfWarModule.h"
 #include "FogWorker.h"
-#include "RHI.h"
+#include <RHI.h>
 
 #include "FogPlane.generated.h"
 
@@ -27,7 +27,7 @@ class FOGOFWARMODULE_API AFogPlane : public AActor {
     GENERATED_BODY()
 
 public:
-    AFogPlane(const FObjectInitializer& FOI);
+    AFogPlane();
 
     // Called when the game starts or when spawned
     void BeginPlay() override;
@@ -46,7 +46,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = FogOfWar)
     void RegisterFowActor(AActor* Actor);
 
-    //Register an actor to influence the FOW-texture
+    //UnRegister an actor to influence the FOW-texture
     UFUNCTION(BlueprintCallable, Category = FogOfWar)
     void UnRegisterFowActor(AActor* Actor);
 

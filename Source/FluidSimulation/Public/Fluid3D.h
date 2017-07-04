@@ -15,7 +15,7 @@
 // responsibility to update it.
 //
 //--------------------------------------------------------------------------------------
-// Portions of the fluid simulation are based on the original work 
+// Portions of the fluid simulation are based on the original work
 // "Practical Fluid Mechanics" by Mick West used with permission.
 //	http://www.gamasutra.com/view/feature/1549/practical_fluid_dynamics_part_1.php
 //	http://www.gamasutra.com/view/feature/1615/practical_fluid_dynamics_part_2.php
@@ -24,17 +24,15 @@
 
 #pragma once
 
-#include "FluidSimulation.h"
 #include "Array3D.h"
 
 // Adds fluid specific functions to class Array3D
 class Fluid3D : public TArray3D<float> {
 public:
+    // Constructor - Sets size of array
+    Fluid3D(int32 x, int32 y, int32 z);
 
-	// Constructor - Sets size of array
-	Fluid3D(int32 x, int32 y, int32 z);
-
-	// When a point is advected it will land in Add fractions of value to the 4 neighboring grid
-	// points of the floating point coordinates
-	void DistributeFloatingPoint(float x, float y, float z, float value);
+    // When a point is advected it will land in Add fractions of value to the 4 neighboring grid
+    // points of the floating point coordinates
+    void DistributeFloatingPoint(float x, float y, float z, float value);
 };

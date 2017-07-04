@@ -1,9 +1,8 @@
 #include "FogOfWarManager.h"
 #include "EngineMinimal.h"
 
-AFogOfWarManager::AFogOfWarManager(const FObjectInitializer& FOI)
-    : Super(FOI)
-    , bIsDoneBlending(false)
+AFogOfWarManager::AFogOfWarManager()
+    : bIsDoneBlending(false)
     , FOWTexture(nullptr)
     , LastFOWTexture(nullptr)
     , FowThread(nullptr)

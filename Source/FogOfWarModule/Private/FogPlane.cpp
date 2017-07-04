@@ -1,39 +1,38 @@
 #include "FogPlane.h"
 
-// Sets default values
-AFogPlane::AFogPlane(const FObjectInitializer& FOI)
+AFogPlane::AFogPlane()
 {
-    // Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
     PrimaryActorTick.bCanEverTick = true;
 
     TextureRegions = FUpdateTextureRegion2D(0U, 0U, 0, 0, TextureSize, TextureSize);
 
     FOWTexture = UTexture2D::CreateTransient(TextureSize, TextureSize);
     FOWTexture->UpdateResource();
-    FOWTexture->AddressX = TextureAddress::TA_Clamp;
-    FOWTexture->AddressY = TextureAddress::TA_Clamp;
-    FOWTexture->Filter = TextureFilter::TF_Default;
+    FOWTexture->AddressX = TA_Clamp;
+    FOWTexture->AddressY = TA_Clamp;
+    FOWTexture->Filter = TF_Default;
     FOWTexture->RefreshSamplerStates();
     LastFOWTexture = UTexture2D::CreateTransient(TextureSize, TextureSize);
     LastFOWTexture->UpdateResource();
-    LastFOWTexture->AddressX = TextureAddress::TA_Clamp;
-    LastFOWTexture->AddressY = TextureAddress::TA_Clamp;
-    LastFOWTexture->Filter = TextureFilter::TF_Default;
+    LastFOWTexture->AddressX = TA_Clamp;
+    LastFOWTexture->AddressY = TA_Clamp;
+    LastFOWTexture->Filter = TF_Default;
     LastFOWTexture->RefreshSamplerStates();
 
-    static ConstructorHelpers::FObjectFinder<UStaticMesh> StaticMeshOb_AW2(TEXT("StaticMesh'/EngineContent/BasicShapes/Cube.Cube'"));
-    Plane = FOI.CreateDefaultSubobject<UStaticMeshComponent>(this, FName(TEXT("Plane")));
+    static ConstructorHelpers::FObjectFinder<UStaticMesh> StaticMeshOb_AW2(TEXT("StaticMesh'/Engine/BasicShapes/Plane.Plane'"));
+    Plane = CreateDefaultSubobject<UStaticMeshComponent>(FName(TEXT("Plane")));
     Plane->SetStaticMesh(StaticMeshOb_AW2.Object);
-
-    DynMaterial = Plane->CreateAndSetMaterialInstanceDynamicFromMaterial(0, FogMaterial);
-    DynMaterial->SetScalarParameterValue("Blend", 0.f);
+    Plane->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
-// Called when the game starts or when spawned
 void AFogPlane::BeginPlay()
 {
     Super::BeginPlay();
-    FowThread.Reset(new FogWorker(*this));
+    if (FogMaterial->IsValidLowLevel()) {
+        DynMaterial = Plane->CreateAndSetMaterialInstanceDynamicFromMaterial(0, FogMaterial);
+        DynMaterial->SetScalarParameterValue("Blend", 0.f);
+    }
+    FowThread = MakeUnique<FogWorker>(*this);
 }
 
 void AFogPlane::EndPlay(const EEndPlayReason::Type reason)
@@ -42,23 +41,30 @@ void AFogPlane::EndPlay(const EEndPlayReason::Type reason)
     Observers.Empty();
 }
 
-// Called every frame
 void AFogPlane::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
-    if (!bIsDoneBlending) {
-        BlendDelta += DeltaTime;
 
-        FMath::Clamp(BlendDelta, 0.f, 1.f);
+    if (!FOWTexture)
+        return;
+    if (!LastFOWTexture)
+        return;
+    if (!DynMaterial)
+        return;
+
+    if (!bIsDoneBlending) {
+        BlendDelta += DeltaTime * 10.0f;
+
+        FMath::Clamp(BlendDelta, 0.0f, 1.0f);
         DynMaterial->SetScalarParameterValue("Blend", BlendDelta);
 
-        if (FMath::IsNearlyEqual(BlendDelta, 1.f)) {
+        if (FMath::IsNearlyEqual(BlendDelta, 1.0f)) {
             bIsDoneBlending = true;
-            BlendDelta = 0.f;
+            BlendDelta = 1.0f;
         }
     }
 
-    if (FOWTexture && LastFOWTexture && bHasFOWTextureUpdate && bIsDoneBlending) {
+    if (bHasFOWTextureUpdate && bIsDoneBlending) {
         // Move to render location
         SetActorLocation(CameraPosition, false, nullptr, ETeleportType::TeleportPhysics);
 
@@ -66,10 +72,11 @@ void AFogPlane::Tick(float DeltaTime)
         bHasFOWTextureUpdate = false;
         bIsDoneBlending = false;
 
+        // Prepare data to render on GPU
         auto srcBpp = 4U;
         auto srcPitch = srcBpp * TextureSize;
-        auto* lastData = reinterpret_cast<uint8*>(LastFrameTextureData.GetData());
-        auto* currentData = reinterpret_cast<uint8*>(TextureData.GetData());
+        auto lastData = reinterpret_cast<uint8*>(LastFrameTextureData.GetData());
+        auto currentData = reinterpret_cast<uint8*>(TextureData.GetData());
 
         // Refresh textures
         LastFOWTexture->UpdateResource();
@@ -79,6 +86,14 @@ void AFogPlane::Tick(float DeltaTime)
 
         // Trigger the blueprint update
         OnFowTextureUpdated(FOWTexture, LastFOWTexture, CameraPosition, LastCameraPosition);
+
+        BlendDelta = 0.0f;
+
+        DynMaterial->SetScalarParameterValue("Blend", BlendDelta);
+        DynMaterial->SetTextureParameterValue("FOWTexture", FOWTexture);
+        DynMaterial->SetTextureParameterValue("LastFOWTexture", LastFOWTexture);
+        DynMaterial->SetVectorParameterValue("CameraPositon", CameraPosition);
+        DynMaterial->SetVectorParameterValue("LastCameraPositon", LastCameraPosition);
 
         // Store last used data
         LastFrameTextureData = TextureData;
@@ -118,8 +133,7 @@ void AFogPlane::UpdateTextureRegions(UTexture2D* Texture, int32 MipIndex, uint32
         uint8* SrcData;
     };
 
-    FUpdateTextureRegionsData* RegionData = new FUpdateTextureRegionsData;
-
+    auto RegionData = new FUpdateTextureRegionsData;
     RegionData->Texture2DResource = static_cast<FTexture2DResource*>(Texture->Resource);
     RegionData->MipIndex = MipIndex;
     RegionData->NumRegions = NumRegions;

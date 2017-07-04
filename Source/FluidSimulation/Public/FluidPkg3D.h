@@ -15,7 +15,7 @@
 // responsibility to update it.
 //
 //--------------------------------------------------------------------------------------
-// Portions of the fluid simulation are based on the original work 
+// Portions of the fluid simulation are based on the original work
 // "Practical Fluid Mechanics" by Mick West used with permission.
 //	http://www.gamasutra.com/view/feature/1549/practical_fluid_dynamics_part_1.php
 //	http://www.gamasutra.com/view/feature/1615/practical_fluid_dynamics_part_2.php
@@ -24,41 +24,49 @@
 
 #pragma once
 
-#include "FluidSimulation.h"
 #include "Fluid3D.h"
 #include "FluidProperties.h"
+#include "FluidSimulation.h"
 
 // Class consists of a 'source' and 'destination' Fluid3D object and defines
 // the properties they share
 class FluidPkg3D {
 public:
+    // Constructor - Initilizes source and destination FLuid3D objects
+    FluidPkg3D(int32 xSize, int32 ySize, int32 zSize);
 
-	// Constructor - Initilizes source and destination FLuid3D objects
-	FluidPkg3D(int32 xSize, int32 ySize, int32 zSize);
+    // Assignment Operator
+    FluidPkg3D& operator=(const FluidPkg3D& right);
 
-	// Assignment Operator
-	FluidPkg3D& operator=(const FluidPkg3D& right);
+    // Swap the source and destination objects
+    void SwapLocations();
 
-	// Swap the source and destination objects
-	void SwapLocations();
+    // Reset the source and destination objects to specified value
+    void Reset(float v);
 
-	// Reset the source and destination objects to specified value
-	void Reset(float v) const;
+    // Accessors
+    Fluid3D& Source() const
+    {
+        return *mp_source;
+    }
 
-	// Accessors
-	Fluid3D& Source() { return *mp_source; }
+    Fluid3D& Destination() const
+    {
+        return *mp_dest;
+    }
 
-	Fluid3D& Destination() { return *mp_dest; }
-
-	FluidProperties& Properties() { return *mp_prop; }
+    FluidProperties& Properties() const
+    {
+        return *mp_prop;
+    }
 
 private:
-	TUniquePtr<Fluid3D> mp_source; // source
-	TUniquePtr<Fluid3D> mp_dest; // destination
+    TUniquePtr<Fluid3D> mp_source; // source
+    TUniquePtr<Fluid3D> mp_dest; // destination
 
-	TUniquePtr<FluidProperties> mp_prop; // defines properties of fluid
+    TUniquePtr<FluidProperties> mp_prop; // defines properties of fluid
 
-	int32 m_X; // x dimension
-	int32 m_Y; // y dimension
-	int32 m_Z; // z dimension
+    int32 m_X; // x dimension
+    int32 m_Y; // y dimension
+    int32 m_Z; // z dimension
 };

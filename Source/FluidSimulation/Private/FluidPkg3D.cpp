@@ -15,7 +15,7 @@
 // responsibility to update it.
 //
 //--------------------------------------------------------------------------------------
-// Portions of the fluid simulation are based on the original work 
+// Portions of the fluid simulation are based on the original work
 // "Practical Fluid Mechanics" by Mick West used with permission.
 //	http://www.gamasutra.com/view/feature/1549/practical_fluid_dynamics_part_1.php
 //	http://www.gamasutra.com/view/feature/1615/practical_fluid_dynamics_part_2.php
@@ -25,30 +25,37 @@
 #include "FluidPkg3D.h"
 #include <utility>
 
-FluidPkg3D::FluidPkg3D(int32 x, int32 y, int32 z) : m_X(x), m_Y(y), m_Z(z) {
-	mp_prop = MakeUnique<FluidProperties>();
-	mp_source = MakeUnique<Fluid3D>(m_X, m_Y, m_Z);
-	mp_dest = MakeUnique<Fluid3D>(m_X, m_Y, m_Z);
+FluidPkg3D::FluidPkg3D(int32 x, int32 y, int32 z)
+    : m_X(x)
+    , m_Y(y)
+    , m_Z(z)
+{
+    mp_prop = MakeUnique<FluidProperties>();
+    mp_source = MakeUnique<Fluid3D>(m_X, m_Y, m_Z);
+    mp_dest = MakeUnique<Fluid3D>(m_X, m_Y, m_Z);
 }
 
-FluidPkg3D& FluidPkg3D::operator=(const FluidPkg3D& right) {
-	if (this != &right) {
-		mp_source = MakeUnique<Fluid3D>(right.m_X, right.m_Y, right.m_Z);
-		mp_dest = MakeUnique<Fluid3D>(right.m_X, right.m_Y, right.m_Z);
-		mp_prop = MakeUnique<FluidProperties>();
-		mp_prop->diffusion = right.mp_prop->diffusion;
-		mp_prop->advection = right.mp_prop->advection;
-		mp_prop->force = right.mp_prop->force;
-		mp_prop->decay = right.mp_prop->decay;
-	}
-	return *this;
+FluidPkg3D& FluidPkg3D::operator=(const FluidPkg3D& right)
+{
+    if (this != &right) {
+        mp_source = MakeUnique<Fluid3D>(right.m_X, right.m_Y, right.m_Z);
+        mp_dest = MakeUnique<Fluid3D>(right.m_X, right.m_Y, right.m_Z);
+        mp_prop = MakeUnique<FluidProperties>();
+        mp_prop->diffusion = right.mp_prop->diffusion;
+        mp_prop->advection = right.mp_prop->advection;
+        mp_prop->force = right.mp_prop->force;
+        mp_prop->decay = right.mp_prop->decay;
+    }
+    return *this;
 }
 
-void FluidPkg3D::SwapLocations() {
-	std::swap(mp_source, mp_dest);
+void FluidPkg3D::SwapLocations()
+{
+    std::swap(mp_source, mp_dest);
 }
 
-void FluidPkg3D::Reset(float v) const {
-	mp_source->Set(v);
-	mp_dest->Set(v);
+void FluidPkg3D::Reset(float v)
+{
+    mp_source->Set(v);
+    mp_dest->Set(v);
 }

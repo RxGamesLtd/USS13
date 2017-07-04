@@ -21,26 +21,27 @@
 
 USTRUCT(BlueprintType)
 struct FLUIDSIMULATION_API FAtmoStruct {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
-	float O2;
+    UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
+    float O2;
 
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
-	float N2;
+    UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
+    float N2;
 
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
-	float CO2;
+    UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
+    float CO2;
 
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
-	float Toxin;
+    UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
+    float Toxin;
 
-	//Constructor
-	FAtmoStruct() {
-		O2 = 0.0f;
-		CO2 = 0.0f;
-		N2 = 0.0f;
-		Toxin = 0.0f;
-	}
+    //Constructor
+    FAtmoStruct()
+    {
+        O2 = 0.0f;
+        CO2 = 0.0f;
+        N2 = 0.0f;
+        Toxin = 0.0f;
+    }
 };

@@ -25,7 +25,7 @@ class AFogPlane;
 class FOGOFWARMODULE_API FogWorker
     : public FRunnable {
 public:
-    FogWorker(AFogPlane& manager);
+    explicit FogWorker(AFogPlane& manager);
 
     //FRunnable interface
     bool Init() override;
@@ -39,7 +39,7 @@ protected:
 
     void UpdateTextureData();
 
-    void UpdateRenderOrigin();
+    void UpdateRenderOrigin() const;
 
     //Method to perform work
     void Update(float time);
@@ -63,7 +63,7 @@ private:
     AFogPlane& Manager;
 
     //Thread safe counter
-    FThreadSafeBool IsTaskStopped;
+    FThreadSafeBool bIsTaskStopped;
 
     float TimeTillLastTick;
 

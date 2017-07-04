@@ -15,7 +15,7 @@
 // responsibility to update it.
 //
 //--------------------------------------------------------------------------------------
-// Portions of the fluid simulation are based on the original work 
+// Portions of the fluid simulation are based on the original work
 // "Practical Fluid Mechanics" by Mick West used with permission.
 //	http://www.gamasutra.com/view/feature/1549/practical_fluid_dynamics_part_1.php
 //	http://www.gamasutra.com/view/feature/1615/practical_fluid_dynamics_part_2.php
@@ -24,53 +24,73 @@
 
 #pragma once
 
-#include "FluidSimulation.h"
 #include "Fluid3D.h"
 #include "FluidProperties.h"
+#include "FluidSimulation.h"
 
-// VelocityPackage3D is a container class for the Source and Destination Fluid3D objects of velocity in the 
+// VelocityPackage3D is a container class for the Source and Destination Fluid3D objects of velocity in the
 // x, y, and z directions.
 class FLUIDSIMULATION_API VelPkg3D {
 public:
+    // Constructor - Initilizes source and destination FLuid3D objects for velocity in X, Y, Z directions
+    VelPkg3D(int32 xSize, int32 ySize, int32 zSize);
 
-	// Constructor - Initilizes source and destination FLuid3D objects for velocity in X, Y, Z directions
-	VelPkg3D(int32 xSize, int32 ySize, int32 zSize);
+    // Assignment Operator
+    VelPkg3D& operator=(const VelPkg3D& right);
 
-	// Assignment Operator
-	VelPkg3D& operator=(const VelPkg3D& right);
+    // Swap the source and destination objects for velocity in X direction
+    void SwapLocationsX();
 
-	// Swap the source and destination objects for velocity in X direction
-	void SwapLocationsX();
+    // Swap the source and destination objects for velocity in Y direction
+    void SwapLocationsY();
 
-	// Swap the source and destination objects for velocity in Y direction
-	void SwapLocationsY();
+    // Swap the source and destination objects for velocity in Z direction
+    void SwapLocationsZ();
 
-	// Swap the source and destination objects for velocity in Z direction
-	void SwapLocationsZ();
+    // Reset the source and destination objects to specified value
+    void Reset(float v) const;
 
-	// Reset the source and destination objects to specified value
-	void Reset(float v) const;
+    // Accessors
+    Fluid3D& SourceX() const
+    {
+        return *mp_sourceX;
+    }
+    Fluid3D& SourceY() const
+    {
+        return *mp_sourceY;
+    }
+    Fluid3D& SourceZ() const
+    {
+        return *mp_sourceZ;
+    }
 
-	// Accessors
-	Fluid3D& SourceX() { return *mp_sourceX; }
-	Fluid3D& SourceY() { return *mp_sourceY; }
-	Fluid3D& SourceZ() { return *mp_sourceZ; }
+    Fluid3D& DestinationX() const
+    {
+        return *mp_destX;
+    }
+    Fluid3D& DestinationY() const
+    {
+        return *mp_destY;
+    }
+    Fluid3D& DestinationZ() const
+    {
+        return *mp_destZ;
+    }
 
-	Fluid3D& DestinationX() { return *mp_destX; }
-	Fluid3D& DestinationY() { return *mp_destY; }
-	Fluid3D& DestinationZ() { return *mp_destZ; }
-
-	FluidProperties& Properties() { return *mp_prop; }
+    FluidProperties& Properties() const
+    {
+        return *mp_prop;
+    }
 
 private:
-	TUniquePtr<Fluid3D> mp_sourceX; // source  for velocity in X direction
-	TUniquePtr<Fluid3D> mp_destX; // destination for velocity in X direction
-	TUniquePtr<Fluid3D> mp_sourceY; // source for velocity in Y direction
-	TUniquePtr<Fluid3D> mp_destY; // destination for velocity in Y direction
-	TUniquePtr<Fluid3D> mp_sourceZ; // source for velocity in Z direction
-	TUniquePtr<Fluid3D> mp_destZ; // destination for velocity in Z direction
-	TUniquePtr<FluidProperties> mp_prop;
-	int32 m_X;
-	int32 m_Y;
-	int32 m_Z;
+    TUniquePtr<Fluid3D> mp_sourceX; // source  for velocity in X direction
+    TUniquePtr<Fluid3D> mp_destX; // destination for velocity in X direction
+    TUniquePtr<Fluid3D> mp_sourceY; // source for velocity in Y direction
+    TUniquePtr<Fluid3D> mp_destY; // destination for velocity in Y direction
+    TUniquePtr<Fluid3D> mp_sourceZ; // source for velocity in Z direction
+    TUniquePtr<Fluid3D> mp_destZ; // destination for velocity in Z direction
+    TUniquePtr<FluidProperties> mp_prop;
+    int32 m_X;
+    int32 m_Y;
+    int32 m_Z;
 };

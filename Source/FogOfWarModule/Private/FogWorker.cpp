@@ -7,7 +7,7 @@ DEFINE_STAT(STAT_FogUpdatesCount);
 
 FogWorker::FogWorker(AFogPlane& manager)
     : Manager(manager)
-    , IsTaskStopped(false)
+    , bIsTaskStopped(true)
     , TimeTillLastTick(0.0f)
     , TextureSize(manager.TextureSize)
 {
@@ -18,22 +18,27 @@ bool FogWorker::Init()
 {
     UE_LOG(LogFow, Log, TEXT("Fog of War worker thread started"));
     UnfoggedData.Init(0.0f, TextureSize * TextureSize);
+    bIsTaskStopped = false;
     return true;
 }
 
 uint32 FogWorker::Run()
 {
-    while (!IsTaskStopped) {
+    while (!bIsTaskStopped) {
         FPlatformProcess::Sleep(0.1f);
         if (Manager.bHasFOWTextureUpdate) {
             continue;
-        }
+        } 
 
         SCOPE_CYCLE_COUNTER(STAT_FogUpdatesCount);
+        auto world = GEngine->GetWorld();
+        if (world) {
+            auto delta = world->TimeSince(TimeTillLastTick);
 
-        Update(GEngine->GetWorld()->TimeSince(TimeTillLastTick));
+            Update(delta);
 
-        TimeTillLastTick = GEngine->GetWorld()->TimeSeconds;
+            TimeTillLastTick = world->TimeSeconds;
+        }
     }
     return 0;
 }
@@ -41,7 +46,8 @@ uint32 FogWorker::Run()
 void FogWorker::Stop()
 {
     UE_LOG(LogFow, Log, TEXT("Fog of War worker thread stoped."));
-    IsTaskStopped = true;
+    bIsTaskStopped = true;
+    Thread->WaitForCompletion();
 }
 
 void FogWorker::ForgetOldLocations(float time)
@@ -74,7 +80,7 @@ void FogWorker::UpdateTextureData()
     Manager.bHasFOWTextureUpdate = true;
 }
 
-void FogWorker::UpdateRenderOrigin()
+void FogWorker::UpdateRenderOrigin() const
 {
     // First PC is local player on client
     const auto& PC = GEngine->GetWorld()->GetFirstPlayerController();
@@ -103,8 +109,8 @@ void FogWorker::Update(float time)
 
     UpdateRenderOrigin();
 
-    FVector o, SurfaceExtent;
-    Manager.GetActorBounds(false, o, SurfaceExtent);
+    FVector origin, SurfaceExtent;
+    Manager.GetActorBounds(false, origin, SurfaceExtent);
     if (FMath::IsNearlyZero(SurfaceExtent.Size2D())) {
         return;
     }
@@ -122,7 +128,6 @@ void FogWorker::Update(float time)
 
     // iterate through observers to unveil fog
     for (auto& observerLocation : observers) {
-
         FVector2D observerTexLoc(observerLocation - Manager.CameraPosition);
         TArray<FVector2D> sightShape;
 

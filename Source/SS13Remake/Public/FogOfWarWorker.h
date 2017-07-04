@@ -16,8 +16,8 @@
 
 #pragma once
 
-#include "UObject/Object.h"
 #include "EngineMinimal.h"
+#include "UObject/Object.h"
 
 class AFogOfWarManager;
 
@@ -25,7 +25,7 @@ class AFogOfWarManager;
 
 class SS13REMAKE_API FogOfWarWorker : public FRunnable {
 public:
-    explicit FogOfWarWorker(AFogOfWarManager *manager);
+    explicit FogOfWarWorker(AFogOfWarManager* manager);
 
     virtual ~FogOfWarWorker();
 
@@ -47,17 +47,17 @@ public:
 
 private:
     //Thread to run the FRunnable on
-    FRunnableThread *Thread;
+    FRunnableThread* Thread;
 
     //Pointer to our manager
-    AFogOfWarManager *Manager;
+    AFogOfWarManager* Manager;
 
     //Thread safe counter
     FThreadSafeCounter StopTaskCounter;
 
     float TimeTillLastTick;
-	
-	void DrawUnveilShape(FVector2D observerTexLoc, TSet<FVector2D> sightShape) const;
 
-	void FloodFill(int x, int y) const;
+    void DrawUnveilShape(FVector2D observerTexLoc, TSet<FVector2D> sightShape) const;
+
+    void FloodFill(int x, int y) const;
 };

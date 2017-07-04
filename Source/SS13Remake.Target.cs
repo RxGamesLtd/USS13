@@ -5,23 +5,12 @@ using System.Collections.Generic;
 
 public class SS13RemakeTarget : TargetRules
 {
-    public SS13RemakeTarget(TargetInfo Target)
+    public SS13RemakeTarget(TargetInfo Target) : base(Target)
     {
         Type = TargetType.Game;
-    }
 
-    //
-    // TargetRules interface.
-    //
-
-    public override void SetupBinaries(
-        TargetInfo Target,
-        ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-        ref List<string> OutExtraModuleNames
-        )
-    {
-        OutExtraModuleNames.Add("SS13Remake");
-        OutExtraModuleNames.Add("FluidSimulation");
-        OutExtraModuleNames.Add("FogOfWarModule");
+        ExtraModuleNames.Add("SS13Remake");
+        ExtraModuleNames.Add("FluidSimulation");
+        ExtraModuleNames.Add("FogOfWarModule");
     }
 }

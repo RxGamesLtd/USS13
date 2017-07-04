@@ -15,32 +15,31 @@
 // responsibility to update it.
 //
 //--------------------------------------------------------------------------------------
-// Portions of the fluid simulation are based on the original work 
+// Portions of the fluid simulation are based on the original work
 // "Practical Fluid Mechanics" by Mick West used with permission.
 //	http://www.gamasutra.com/view/feature/1549/practical_fluid_dynamics_part_1.php
 //	http://www.gamasutra.com/view/feature/1615/practical_fluid_dynamics_part_2.php
 //	http://cowboyprogramming.com/2008/04/01/practical-fluid-mechanics/
 //-------------------------------------------------------------------------------------
 
-#pragma once 
-
-#include "FluidSimulation.h"
+#pragma once
 
 // Properties common to the simulation's heat, ink, pressure, and velocity grids
 struct FLUIDSIMULATION_API FluidProperties {
 
-	float diffusion;
+    float diffusion;
 
-	float advection;
+    float advection;
 
-	float force;
+    float force;
 
-	float decay;
+    float decay;
 
-	FluidProperties() {
-		diffusion = 0.0f;
-		advection = 0.0f;
-		force = 0.0f;
-		decay = 0.0f;
-	}
+    FluidProperties()
+    {
+        diffusion = 0.0f;
+        advection = 0.0f;
+        force = 0.0f;
+        decay = 0.0f;
+    }
 };
