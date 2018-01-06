@@ -18,11 +18,7 @@
 
 AtmoPkg3D::AtmoPkg3D(int32 x, int32 y, int32 z)
 {
-    m_data.SetNum(EGasType::GasTypeCount);
-    for(int i = 0; i < m_data.Num(); ++i)
-    {
-        m_data[i] = {x, y, z};
-    }
+    m_data.Init({x, y, z}, EGasType::GasTypeCount);
 }
 
 void AtmoPkg3D::swap()
