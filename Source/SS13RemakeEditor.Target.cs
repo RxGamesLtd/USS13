@@ -24,7 +24,7 @@ public class SS13RemakeEditorTarget : TargetRules
         Type = TargetType.Editor;
 
         ExtraModuleNames.Add("SS13Remake");
-        ExtraModuleNames.Add("FluidSimulation");
+        ExtraModuleNames.Add("FluidSimulationModule");
         ExtraModuleNames.Add("FogOfWarModule");
     }
 }

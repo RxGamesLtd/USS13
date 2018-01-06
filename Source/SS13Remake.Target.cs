@@ -24,7 +24,7 @@ public class SS13RemakeTarget : TargetRules
         Type = TargetType.Game;
 
         ExtraModuleNames.Add("SS13Remake");
-        ExtraModuleNames.Add("FluidSimulation");
+        ExtraModuleNames.Add("FluidSimulationModule");
         ExtraModuleNames.Add("FogOfWarModule");
     }
 }

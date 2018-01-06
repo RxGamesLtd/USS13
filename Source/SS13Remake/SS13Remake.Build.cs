@@ -27,7 +27,7 @@ public class SS13Remake : ModuleRules
               "InputCore",
               "RHI",
               "RenderCore",
-              "FluidSimulation",
+              "FluidSimulationModule",
               "FogOfWarModule"
             });
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
