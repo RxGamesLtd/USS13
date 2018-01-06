@@ -1,5 +1,5 @@
 // The MIT License (MIT)
-// Copyright (c) 2017 RxCompile
+// Copyright (c) 2018 RxCompile
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 // documentation files (the "Software"), to deal in the Software without restriction, including without limitation
@@ -19,12 +19,12 @@
 #include "AtmoStruct.h"
 #include "EngineMinimal.h"
 #include "FluidSimulationManager.h"
-#include "Private/GridUtils.h"
 
 #include "WorldGrid.generated.h"
 
 UCLASS()
-class SS13REMAKE_API AWorldGrid : public AActor {
+class SS13REMAKE_API AWorldGrid : public AActor
+{
     GENERATED_BODY()
 
 public:
@@ -35,10 +35,7 @@ public:
     void BeginPlay() override;
 
     // Called every frame
-    void Tick(float DeltaSeconds) override;
-
-    UPROPERTY()
-    TArray<FGridCell> Grid;
+    void Tick(float deltaSeconds) override;
 
     UPROPERTY(Category = "Grid", BlueprintReadWrite, EditAnywhere)
     FVector Size;
@@ -47,11 +44,10 @@ public:
     FVector CellExtent;
 
     UFUNCTION(Category = "Grid", BlueprintCallable)
-
     FAtmoStruct GetAtmoStatusByLocation(FVector location) const;
 
 protected:
     FAtmoStruct GetAtmoStatusByIndex(int32 x, int32 y, int32 z) const;
 
-    TUniquePtr<FFluidSimulationManager> AtmosManager;
+    TUniquePtr<FFluidSimulationManager> m_atmosphericsManager;
 };

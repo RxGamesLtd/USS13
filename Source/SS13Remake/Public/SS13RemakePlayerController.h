@@ -1,5 +1,5 @@
 // The MIT License (MIT)
-// Copyright (c) 2017 RxCompile
+// Copyright (c) 2018 RxCompile
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 // documentation files (the "Software"), to deal in the Software without restriction, including without limitation
@@ -17,11 +17,12 @@
 #pragma once
 
 #include "GameFramework/PlayerController.h"
+
 #include "SS13RemakePlayerController.generated.h"
 
 UCLASS()
-
-class ASS13RemakePlayerController : public APlayerController {
+class ASS13RemakePlayerController : public APlayerController
+{
     GENERATED_BODY()
 
 public:
@@ -29,10 +30,10 @@ public:
 
 protected:
     /** True if the controlled character should navigate to the mouse cursor. */
-    uint32 bMoveToMouseCursor : 1;
+    bool bMoveToMouseCursor;
 
     // Begin PlayerController interface
-    void PlayerTick(float DeltaTime) override;
+    void PlayerTick(float deltaTime) override;
 
     void SetupInputComponent() override;
     // End PlayerController interface
@@ -41,10 +42,10 @@ protected:
     void MoveToMouseCursor();
 
     /** Navigate player to the current touch location. */
-    void MoveToTouchLocation(const ETouchIndex::Type FingerIndex, const FVector Location);
+    void MoveToTouchLocation(const ETouchIndex::Type fingerIndex, const FVector location);
 
     /** Navigate player to the given world location. */
-    void SetNewMoveDestination(const FVector DestLocation);
+    void SetNewMoveDestination(const FVector destLocation);
 
     /** Input handlers for SetDestination action. */
     void OnSetDestinationPressed();

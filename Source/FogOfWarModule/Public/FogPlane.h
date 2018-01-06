@@ -1,5 +1,5 @@
 // The MIT License (MIT)
-// Copyright (c) 2017 RxCompile
+// Copyright (c) 2018 RxCompile
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 // documentation files (the "Software"), to deal in the Software without restriction, including without limitation
@@ -16,14 +16,15 @@
 
 #pragma once
 
-#include "FogOfWarModule.h"
-#include "FogWorker.h"
 #include <RHI.h>
+
+#include "FogWorker.h"
 
 #include "FogPlane.generated.h"
 
 UCLASS()
-class FOGOFWARMODULE_API AFogPlane : public AActor {
+class FOGOFWARMODULE_API AFogPlane : public AActor
+{
     GENERATED_BODY()
 
 public:
@@ -38,40 +39,43 @@ public:
     // Called every frame
     void Tick(float DeltaSeconds) override;
 
-    //Triggers a update in the blueprint
+    // Triggers a update in the blueprint
     UFUNCTION(BlueprintNativeEvent)
-    void OnFowTextureUpdated(UTexture2D* currentTexture, UTexture2D* lastTexture, FVector cameraLocation, FVector lastCameraLocation);
+    void OnFowTextureUpdated(UTexture2D* currentTexture,
+                             UTexture2D* lastTexture,
+                             FVector cameraLocation,
+                             FVector lastCameraLocation);
 
-    //Register an actor to influence the FOW-texture
+    // Register an actor to influence the FOW-texture
     UFUNCTION(BlueprintCallable, Category = FogOfWar)
     void RegisterFowActor(AActor* Actor);
 
-    //UnRegister an actor to influence the FOW-texture
+    // UnRegister an actor to influence the FOW-texture
     UFUNCTION(BlueprintCallable, Category = FogOfWar)
     void UnRegisterFowActor(AActor* Actor);
 
-    //How far will an actor be able to see
-    //CONSIDER: Place it on the actors to allow for individual sight-radius
+    // How far will an actor be able to see
+    // CONSIDER: Place it on the actors to allow for individual sight-radius
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = FogOfWar)
     float SightRange = 9.0f;
 
-    //Check to see if we have a new FOW-texture.
+    // Check to see if we have a new FOW-texture.
     FThreadSafeBool bHasFOWTextureUpdate = false;
 
     UPROPERTY(EditAnywhere, Category = FogOfWar)
     float SecondsToForget = 1.0f;
 
-    //The size of our textures
+    // The size of our textures
     UPROPERTY(EditAnywhere, Category = FogOfWar)
     int32 TextureSize = 512;
 
-    //Our texture data
+    // Our texture data
     TArray<FColor> TextureData;
 
-    //Texture rendered for this position
+    // Texture rendered for this position
     FVector CameraPosition;
 
-    //Store the actors that will be unveiling the FOW-texture.
+    // Store the actors that will be unveiling the FOW-texture.
     UPROPERTY(VisibleAnywhere, Category = FogOfWar)
     TArray<AActor*> Observers;
 
@@ -82,41 +86,40 @@ public:
     UStaticMeshComponent* Plane;
 
 private:
-    //Our texture data from the last frame
+    // Our texture data from the last frame
     TArray<FColor> LastFrameTextureData;
 
     FVector LastCameraPosition;
 
-    //Stolen from https://wiki.unrealengine.com/Dynamic_Textures
-    void UpdateTextureRegions(
-        UTexture2D* Texture,
-        int32 MipIndex,
-        uint32 NumRegions,
-        FUpdateTextureRegion2D* Regions,
-        uint32 SrcPitch,
-        uint32 SrcBpp,
-        uint8* SrcData,
-        bool bFreeData) const;
+    // Stolen from https://wiki.unrealengine.com/Dynamic_Textures
+    void UpdateTextureRegions(UTexture2D* Texture,
+                              int32 MipIndex,
+                              uint32 NumRegions,
+                              FUpdateTextureRegion2D* Regions,
+                              uint32 SrcPitch,
+                              uint32 SrcBpp,
+                              uint8* SrcData,
+                              bool bFreeData) const;
 
     UPROPERTY(transient)
     UMaterialInstanceDynamic* DynMaterial;
 
-    //Our dynamically updated texture
-    UPROPERTY(transient)
+    // Our dynamically updated texture
+    UPROPERTY(transient, VisibleAnywhere)
     UTexture2D* FOWTexture;
 
-    //Texture from last update. We blend between the two to do a smooth unveiling of newly discovered areas.
+    // Texture from last update. We blend between the two to do a smooth unveiling of newly discovered areas.
     UPROPERTY(transient)
     UTexture2D* LastFOWTexture;
 
-    //Texture regions
+    // Texture regions
     FUpdateTextureRegion2D TextureRegions;
 
-    //Our fowupdatethread
+    // Our fowupdatethread
     TUniquePtr<FogWorker> FowThread;
 
-    //If the last texture blending is done
+    // If the last texture blending is done
     bool bIsDoneBlending = false;
 
-    float BlendDelta;
+    float BlendDelta = 0.0f;
 };

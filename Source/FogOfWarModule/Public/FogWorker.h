@@ -1,5 +1,5 @@
 // The MIT License (MIT)
-// Copyright (c) 2017 RxCompile
+// Copyright (c) 2018 RxCompile
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 // documentation files (the "Software"), to deal in the Software without restriction, including without limitation
@@ -16,18 +16,23 @@
 
 #pragma once
 
+#include <Runnable.h>
+#include <Stats2.h>
+#include <ThreadSafeBool.h>
+#include <UniquePtr.h>
+
 #include "FogOfWarModule.h"
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("FogUpdatesCount"), STAT_FogUpdatesCount, STATGROUP_FOWStats, FOGOFWARMODULE_API);
 
 class AFogPlane;
 
-class FOGOFWARMODULE_API FogWorker
-    : public FRunnable {
+class FOGOFWARMODULE_API FogWorker : public FRunnable
+{
 public:
     explicit FogWorker(AFogPlane& manager);
 
-    //FRunnable interface
+    // FRunnable interface
     bool Init() override;
 
     uint32 Run() override;
@@ -41,7 +46,7 @@ protected:
 
     void UpdateRenderOrigin() const;
 
-    //Method to perform work
+    // Method to perform work
     void Update(float time);
 
     bool bShouldUpdate = false;
@@ -57,12 +62,12 @@ protected:
     void FloodFill(int32 x, int32 y);
 
 private:
-    //Thread to run the FRunnable on
+    // Thread to run the FRunnable on
     TUniquePtr<FRunnableThread> Thread;
 
     AFogPlane& Manager;
 
-    //Thread safe counter
+    // Thread safe counter
     FThreadSafeBool bIsTaskStopped;
 
     float TimeTillLastTick;

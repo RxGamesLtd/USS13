@@ -1,15 +1,31 @@
+// The MIT License (MIT)
+// Copyright (c) 2018 RxCompile
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+// documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+// permit persons to whom the Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all copies or substantial portions
+// of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+// WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
+// OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 #include "FogWorker.h"
 #include "FogOfWarModule.h"
 #include "FogPlane.h"
+
+#include "Runtime/Engine/Public/SceneView.h"
+
 #include <utility>
 
 DEFINE_STAT(STAT_FogUpdatesCount);
 
 FogWorker::FogWorker(AFogPlane& manager)
-    : Manager(manager)
-    , bIsTaskStopped(true)
-    , TimeTillLastTick(0.0f)
-    , TextureSize(manager.TextureSize)
+  : Manager(manager), bIsTaskStopped(true), TimeTillLastTick(0.0f), TextureSize(manager.TextureSize)
 {
     Thread.Reset(FRunnableThread::Create(this, TEXT("AFogWorker"), 0U, TPri_BelowNormal));
 }
@@ -24,15 +40,18 @@ bool FogWorker::Init()
 
 uint32 FogWorker::Run()
 {
-    while (!bIsTaskStopped) {
+    while(!bIsTaskStopped)
+    {
         FPlatformProcess::Sleep(0.1f);
-        if (Manager.bHasFOWTextureUpdate) {
+        if(Manager.bHasFOWTextureUpdate)
+        {
             continue;
-        } 
+        }
 
         SCOPE_CYCLE_COUNTER(STAT_FogUpdatesCount);
-        auto world = GEngine->GetWorld();
-        if (world) {
+        auto world = Manager.GetWorld();
+        if(world)
+        {
             auto delta = world->TimeSince(TimeTillLastTick);
 
             Update(delta);
@@ -53,10 +72,12 @@ void FogWorker::Stop()
 void FogWorker::ForgetOldLocations(float time)
 {
     const float fadedDelta = time / Manager.SecondsToForget;
-    //forget about old positions
-    for (auto&& dta : UnfoggedData) {
+    // forget about old positions
+    for(auto&& dta : UnfoggedData)
+    {
         dta -= fadedDelta;
-        if (dta < 0.0f) {
+        if(dta < 0.0f)
+        {
             dta = 0.0f;
         }
     }
@@ -64,14 +85,21 @@ void FogWorker::ForgetOldLocations(float time)
 
 void FogWorker::UpdateTextureData()
 {
-    for (int32 y = 0; y < TextureSize; ++y) {
-        for (int32 x = 0; x < TextureSize; ++x) {
+    for(int32 y = 0; y < TextureSize; ++y)
+    {
+        for(int32 x = 0; x < TextureSize; ++x)
+        {
             auto visibility = UnfoggedData[x + y * TextureSize];
-            if (visibility > 0.9f) {
+            if(visibility > 0.9f)
+            {
                 Manager.TextureData[x + y * TextureSize] = FColor(255, 255, 255);
-            } else if (visibility > 0.1f) {
+            }
+            else if(visibility > 0.1f)
+            {
                 Manager.TextureData[x + y * TextureSize] = FColor(100, 100, 100);
-            } else {
+            }
+            else
+            {
                 Manager.TextureData[x + y * TextureSize] = FColor(0, 0, 0);
             }
         }
@@ -83,13 +111,15 @@ void FogWorker::UpdateTextureData()
 void FogWorker::UpdateRenderOrigin() const
 {
     // First PC is local player on client
-    const auto& PC = GEngine->GetWorld()->GetFirstPlayerController();
-    if (!PC) {
+    const auto& PC = Manager.GetWorld()->GetFirstPlayerController();
+    if(!PC)
+    {
         return;
     }
 
     // Cache camera location
-    if (!PC->PlayerCameraManager) {
+    if(!PC->PlayerCameraManager)
+    {
         return;
     }
 
@@ -102,8 +132,9 @@ void FogWorker::Update(float time)
     // Debug stuff
     static const FName TraceTag(TEXT("FOWTrace"));
 
-    const UWorld* world = GEngine->GetWorld();
-    if (!world) {
+    const UWorld* world = Manager.GetWorld();
+    if(!world)
+    {
         return;
     }
 
@@ -111,7 +142,8 @@ void FogWorker::Update(float time)
 
     FVector origin, SurfaceExtent;
     Manager.GetActorBounds(false, origin, SurfaceExtent);
-    if (FMath::IsNearlyZero(SurfaceExtent.Size2D())) {
+    if(FMath::IsNearlyZero(SurfaceExtent.Size2D()))
+    {
         return;
     }
 
@@ -120,14 +152,17 @@ void FogWorker::Update(float time)
     // Cache observers location
     TArray<FVector> observers;
     observers.Reserve(Manager.Observers.Num());
-    for (const auto& o : Manager.Observers) {
-        if (o->IsValidLowLevel()) {
+    for(const auto& o : Manager.Observers)
+    {
+        if(o->IsValidLowLevel())
+        {
             observers.Add(o->GetActorLocation());
         }
     }
 
     // iterate through observers to unveil fog
-    for (auto& observerLocation : observers) {
+    for(auto& observerLocation : observers)
+    {
         FVector2D observerTexLoc(observerLocation - Manager.CameraPosition);
         TArray<FVector2D> sightShape;
 
@@ -137,28 +172,34 @@ void FogWorker::Update(float time)
 
         FCollisionQueryParams queryParams(TraceTag, true);
 
-        for (float i = 0; i < 2 * PI; i += HALF_PI / 100.0f) {
+        for(float i = 0; i < 2 * PI; i += HALF_PI / 100.0f)
+        {
             auto x = Manager.SightRange * FMath::Cos(i);
             auto y = Manager.SightRange * FMath::Sin(i);
 
             FVector sightLoc = observerLocation + FVector(x, y, 0);
 
             FHitResult hit;
-            if (world->LineTraceSingleByChannel(hit, observerLocation, sightLoc, ECC_GameTraceChannel2, queryParams)) {
+            if(world->LineTraceSingleByChannel(hit, observerLocation, sightLoc, ECC_GameTraceChannel2, queryParams))
+            {
                 sightLoc = hit.Location;
             }
 
-            FVector2D hitTexLoc(sightLoc - Manager.CameraPosition);
-            hitTexLoc /= FVector2D(SurfaceExtent);
-            hitTexLoc *= TextureSize / 2.0f;
-            hitTexLoc += FVector2D(TextureSize / 2.0f, TextureSize / 2.0f);
+            FVector2D hitTexLoc;
+            if(FSceneView::ProjectWorldToScreen(sightLoc, FIntRect(0, 0, 1024, 768), FMatrix::Identity, hitTexLoc))
+            {
+                // hitTexLoc = FVector2D(sightLoc - Manager.CameraPosition);
+                hitTexLoc /= FVector2D(SurfaceExtent);
+                hitTexLoc *= TextureSize / 2.0f;
+                hitTexLoc += FVector2D(TextureSize / 2.0f, TextureSize / 2.0f);
 
-            sightShape.AddUnique(hitTexLoc);
+                sightShape.AddUnique(hitTexLoc);
+            }
         }
         // draw a unveil shape
         DrawUnveilShape(observerTexLoc, sightShape);
         // flood fill area
-        //FloodFill(observerTexLoc.X, observerTexLoc.Y);
+        // FloodFill(observerTexLoc.X, observerTexLoc.Y);
     }
 
     UpdateTextureData();
@@ -166,9 +207,10 @@ void FogWorker::Update(float time)
 
 void FogWorker::DrawUnveilShape(FVector2D observerTexLoc, TArray<FVector2D> sightShape)
 {
-    for (auto i = 0; i < sightShape.Num(); ++i) {
+    for(auto i = 0; i < sightShape.Num(); ++i)
+    {
         auto point = sightShape[i];
-        //auto next = sightShape[(i + 1) % sightShape.Num()];
+        // auto next = sightShape[(i + 1) % sightShape.Num()];
         auto next = observerTexLoc;
 
         DrawLine(point, next);
@@ -185,12 +227,14 @@ void FogWorker::DrawLine(FVector2D start, FVector2D end)
     float y2 = end.Y;
 
     const bool steep = FMath::Abs(y2 - y1) > FMath::Abs(x2 - x1);
-    if (steep) {
+    if(steep)
+    {
         std::swap(x1, y1);
         std::swap(x2, y2);
     }
 
-    if (x1 > x2) {
+    if(x1 > x2)
+    {
         std::swap(x1, x2);
         std::swap(y1, y2);
     }
@@ -204,16 +248,21 @@ void FogWorker::DrawLine(FVector2D start, FVector2D end)
 
     const int32 maxX = FMath::TruncToInt(x2);
 
-    for (int32 x = FMath::TruncToInt(x1); x < maxX; x++) {
+    for(int32 x = FMath::TruncToInt(x1); x < maxX; x++)
+    {
         // Unveil the positions we are currently seeing
-        if (steep) {
+        if(steep)
+        {
             DrawPoint(FVector2D(y, x));
-        } else {
+        }
+        else
+        {
             DrawPoint(FVector2D(x, y));
         }
 
         error -= dy;
-        if (error < 0) {
+        if(error < 0)
+        {
             y += ystep;
             error += dx;
         }
@@ -222,11 +271,14 @@ void FogWorker::DrawLine(FVector2D start, FVector2D end)
 
 void FogWorker::DrawPoint(FVector2D point, const int32 brushSize)
 {
-    for (auto offX = -brushSize; offX <= brushSize; ++offX) {
-        for (auto offY = -brushSize; offY <= brushSize; ++offY) {
+    for(auto offX = -brushSize; offX <= brushSize; ++offX)
+    {
+        for(auto offY = -brushSize; offY <= brushSize; ++offY)
+        {
             auto brushPixelX = point.X + offX;
             auto brushPixelY = point.Y + offY;
-            if (brushPixelX >= 0 && brushPixelX < TextureSize && brushPixelY >= 0 && brushPixelY < TextureSize) {
+            if(brushPixelX >= 0 && brushPixelX < TextureSize && brushPixelY >= 0 && brushPixelY < TextureSize)
+            {
                 UnfoggedData[brushPixelX + brushPixelY * TextureSize] = 1.0f;
             }
         }
@@ -235,7 +287,8 @@ void FogWorker::DrawPoint(FVector2D point, const int32 brushSize)
 
 void FogWorker::FloodFill(int32 x, int32 y)
 {
-    if (x < 0 || x >= TextureSize || y < 0 || y >= TextureSize) {
+    if(x < 0 || x >= TextureSize || y < 0 || y >= TextureSize)
+    {
         return;
     }
 
@@ -243,7 +296,8 @@ void FogWorker::FloodFill(int32 x, int32 y)
     // Flood-fill (node, target-color, replacement-color):
     // 1. If target - color is equal to replacement - color, return.
     // 2. If color of node is not equal to target - color, return.
-    if (FMath::IsNearlyEqual(UnfoggedData[x + y * TextureSize], 1.0f)) {
+    if(FMath::IsNearlyEqual(UnfoggedData[x + y * TextureSize], 1.0f))
+    {
         return;
     }
     // 3. Set Q to the empty queue.
@@ -253,27 +307,32 @@ void FogWorker::FloodFill(int32 x, int32 y)
 
     FIntVector N;
     // 5. For each element N of Q :
-    while (Q.Dequeue(N)) {
+    while(Q.Dequeue(N))
+    {
         // 6. Set w and e equal to N.
         auto w = N, e = N;
         // 7. Move w to the west until the color of the node to the west of w no longer matches target - color.
-        while (w.X - 1 > 0 && !FMath::IsNearlyEqual(UnfoggedData[w.X - 1 + w.Y * TextureSize], 1.0f)) {
+        while(w.X - 1 > 0 && !FMath::IsNearlyEqual(UnfoggedData[w.X - 1 + w.Y * TextureSize], 1.0f))
+        {
             w.X--;
         }
         // 8. Move e to the east until the color of the node to the east of e no longer matches target - color.
-        while (e.X + 1 < TextureSize && !FMath::IsNearlyEqual(UnfoggedData[e.X + 1 + e.Y * TextureSize], 1.0f)) {
+        while(e.X + 1 < TextureSize && !FMath::IsNearlyEqual(UnfoggedData[e.X + 1 + e.Y * TextureSize], 1.0f))
+        {
             e.X++;
         }
         // 9. For each node n between w and e :
-        for (auto i = w.X; i <= e.X; ++i) {
+        for(auto i = w.X; i <= e.X; ++i)
+        {
             FIntVector n(i, N.Y, 0);
             // 10. Set the color of n to replacement - color.
             UnfoggedData[n.X + n.Y * TextureSize] = 1.0f;
             // 11. If the color of the node to the north of n is target - color, add that node to Q.
-            if (n.Y + 1 < TextureSize && !FMath::IsNearlyEqual(UnfoggedData[n.X + (n.Y + 1) * TextureSize], 1.0f))
+            if(n.Y + 1 < TextureSize && !FMath::IsNearlyEqual(UnfoggedData[n.X + (n.Y + 1) * TextureSize], 1.0f))
                 Q.Enqueue(FIntVector(n.X, n.Y + 1, 0));
             // 12. If the color of the node to the south of n is target - color, add that node to Q.
-            if (n.Y - 1 > 0 && !FMath::IsNearlyEqual(UnfoggedData[n.X + (n.Y - 1) * TextureSize], 1.0f)) {
+            if(n.Y - 1 > 0 && !FMath::IsNearlyEqual(UnfoggedData[n.X + (n.Y - 1) * TextureSize], 1.0f))
+            {
                 Q.Enqueue(FIntVector(n.X, n.Y - 1, 0));
             }
         }
