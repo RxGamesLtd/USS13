@@ -1,35 +1,26 @@
-//-------------------------------------------------------------------------------------
+// The MIT License (MIT)
+// Copyright (c) 2018 RxCompile
 //
-// Copyright 2009 Intel Corporation
-// All Rights Reserved
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+// documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+// permit persons to whom the Software is furnished to do so, subject to the following conditions:
 //
-// Permission is granted to use, copy, distribute and prepare derivative works of this
-// software for any purpose and without fee, provided, that the above copyright notice
-// and this statement appear in all copies.  Intel makes no representations about the
-// suitability of this software for any purpose.  THIS SOFTWARE IS PROVIDED "AS IS."
-// INTEL SPECIFICALLY DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, AND ALL LIABILITY,
-// INCLUDING CONSEQUENTIAL AND OTHER INDIRECT DAMAGES, FOR THE USE OF THIS SOFTWARE,
-// INCLUDING LIABILITY FOR INFRINGEMENT OF ANY PROPRIETARY RIGHTS, AND INCLUDING THE
-// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.  Intel does not
-// assume any responsibility for any errors which may appear in this software nor any
-// responsibility to update it.
+// The above copyright notice and this permission notice shall be included in all copies or substantial portions
+// of the Software.
 //
-//--------------------------------------------------------------------------------------
-// Portions of the fluid simulation are based on the original work
-// "Practical Fluid Mechanics" by Mick West used with permission.
-//	http://www.gamasutra.com/view/feature/1549/practical_fluid_dynamics_part_1.php
-//	http://www.gamasutra.com/view/feature/1615/practical_fluid_dynamics_part_2.php
-//	http://cowboyprogramming.com/2008/04/01/practical-fluid-mechanics/
-//-------------------------------------------------------------------------------------
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+// WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
+// OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "Fluid3D.h"
 
-Fluid3D::Fluid3D(int32 x, int32 y, int32 z)
-    : TArray3D(x, y, z){};
+Fluid3D::Fluid3D(int32 x, int32 y, int32 z) : TArray3D(x, y, z){};
 
 // Distribute a value to the 8 grid points surrounding the floating point coordinates
 // x,y,z must be 1 less than their associated max values (dimensions of array)
-void Fluid3D::DistributeFloatingPoint(float x, float y, float z, float value)
+void Fluid3D::distributeFloatingPoint(float x, float y, float z, float value)
 {
     // Coordinate (ix, iy, iz) is the top-left-back point on cube
     auto ix = FMath::FloorToInt(x);

@@ -1,5 +1,5 @@
 // The MIT License (MIT)
-// Copyright (c) 2017 RxCompile
+// Copyright (c) 2018 RxCompile
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 // documentation files (the "Software"), to deal in the Software without restriction, including without limitation
@@ -16,11 +16,11 @@
 
 #pragma once
 
-#include "FluidSimulation.h"
 #include "AtmoStruct.generated.h"
 
 USTRUCT(BlueprintType)
-struct FLUIDSIMULATION_API FAtmoStruct {
+struct FLUIDSIMULATION_API FAtmoStruct
+{
     GENERATED_BODY()
 
 public:
@@ -36,7 +36,7 @@ public:
     UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
     float Toxin;
 
-    //Constructor
+    // Constructor
     FAtmoStruct()
     {
         O2 = 0.0f;

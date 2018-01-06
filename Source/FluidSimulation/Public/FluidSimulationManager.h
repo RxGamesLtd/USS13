@@ -1,5 +1,5 @@
 // The MIT License (MIT)
-// Copyright (c) 2017 RxCompile
+// Copyright (c) 2018 RxCompile
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 // documentation files (the "Software"), to deal in the Software without restriction, including without limitation
@@ -16,24 +16,18 @@
 
 #pragma once
 
-#include "FluidSimulation.h"
 #include "FluidSimulation3D.h"
 
-class FLUIDSIMULATION_API FFluidSimulationManager
-    : public FRunnable {
+class FLUIDSIMULATION_API FFluidSimulationManager : public FRunnable
+{
 public:
     FFluidSimulationManager();
 
-    FIntVector Size;
+    void setSize(FVector size);
 
-    void SetSize(FVector size);
+    void start();
 
-    void Start();
-
-    bool IsStarted() const
-    {
-        return !bIsTaskStopped;
-    }
+    bool isStarted() const { return !m_isTaskStopped; }
 
     bool Init() override;
 
@@ -41,18 +35,21 @@ public:
 
     void Stop() override;
 
-    struct FAtmoStruct GetValue(int32 x, int32 y, int32 z) const;
+    struct FAtmoStruct getValue(int32 x, int32 y, int32 z) const;
 
-    FVector GetVelocity(int32 x, int32 y, int32 z) const;
+    FVector getVelocity(int32 x, int32 y, int32 z) const;
 
 private:
     /** SimulationObject */
-    TUniquePtr<FluidSimulation3D> sim;
+    TUniquePtr<FluidSimulation3D> m_sim;
     /** Thread to run the worker FRunnable on */
-    TUniquePtr<FRunnableThread> Thread;
+    TUniquePtr<FRunnableThread> m_thread;
     /** Stop this thread? Uses Thread Safe Counter */
-    class FThreadSafeBool bIsTaskStopped;
+    FThreadSafeBool m_isTaskStopped;
+
+    FIntVector m_size;
 
 protected:
-    float InitializeAtmoCell(int32 x, int32 y, int32 z, uint32 type) const;
+    EFlowDirection initializeSolid(int32 x, int32 y, int32 z) const;
+    float initializeAtmoCell(int32 x, int32 y, int32 z, uint32 type) const;
 };

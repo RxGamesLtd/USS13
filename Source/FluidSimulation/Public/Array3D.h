@@ -1,116 +1,63 @@
-//-------------------------------------------------------------------------------------
+// The MIT License (MIT)
+// Copyright (c) 2018 RxCompile
 //
-// Copyright 2009 Intel Corporation
-// All Rights Reserved
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+// documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+// permit persons to whom the Software is furnished to do so, subject to the following conditions:
 //
-// Permission is granted to use, copy, distribute and prepare derivative works of this
-// software for any purpose and without fee, provided, that the above copyright notice
-// and this statement appear in all copies.  Intel makes no representations about the
-// suitability of this software for any purpose.  THIS SOFTWARE IS PROVIDED "AS IS."
-// INTEL SPECIFICALLY DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, AND ALL LIABILITY,
-// INCLUDING CONSEQUENTIAL AND OTHER INDIRECT DAMAGES, FOR THE USE OF THIS SOFTWARE,
-// INCLUDING LIABILITY FOR INFRINGEMENT OF ANY PROPRIETARY RIGHTS, AND INCLUDING THE
-// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.  Intel does not
-// assume any responsibility for any errors which may appear in this software nor any
-// responsibility to update it.
+// The above copyright notice and this permission notice shall be included in all copies or substantial portions
+// of the Software.
 //
-//--------------------------------------------------------------------------------------
-// Portions of the fluid simulation are based on the original work
-// "Practical Fluid Mechanics" by Mick West used with permission.
-//	http://www.gamasutra.com/view/feature/1549/practical_fluid_dynamics_part_1.php
-//	http://www.gamasutra.com/view/feature/1615/practical_fluid_dynamics_part_2.php
-//	http://cowboyprogramming.com/2008/04/01/practical-fluid-mechanics/
-//-------------------------------------------------------------------------------------
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+// WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
+// OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #pragma once
 
 #include "Array.h"
 #include "Delegate.h"
-#include "FluidSimulation.h"
 #include "Platform.h"
 
 template <typename T>
-class TArray3D {
+class TArray3D
+{
+    using ValueType = T;
+
 public:
     // Default Constructor - do nothing
-    TArray3D()
-        : m_X(0)
-        , m_Y(0)
-        , m_Z(0)
-        , m_size(0)
-    {
-    }
+    TArray3D() : m_x(0), m_y(0), m_z(0), m_size(0) {}
 
     // Destruct array
-    virtual ~TArray3D() {}
+    virtual ~TArray3D() = default;
 
     // Constructor
-    TArray3D(int32 x, int32 y, int32 z)
-        : m_X(x)
-        , m_Y(y)
-        , m_Z(z)
-        , m_size(x * y * z)
-    {
-        m_array.SetNum(m_size);
-    }
+    TArray3D(int32 x, int32 y, int32 z) : m_x(x), m_y(y), m_z(z), m_size(x * y * z) { m_array.SetNum(m_size); }
 
     // Constructor
-    TArray3D(int32 x, int32 y, int32 z, T initialValue)
-        : TArray3D<T>(x, y, z)
-    {
-        Set(initialValue);
-    }
+    TArray3D(int32 x, int32 y, int32 z, ValueType initialValue) : TArray3D(x, y, z) { set(initialValue); }
 
-    // Copy Constructor
-    TArray3D(const TArray3D& arrIn)
-        : m_array(arrIn.m_array)
-        , m_X(arrIn.m_X)
-        , m_Y(arrIn.m_Y)
-        , m_Z(arrIn.m_Z)
-        , m_size(arrIn.m_size)
-    {
-    }
+    // Array bracket operator. Returns reference to element at give index.
+    FORCEINLINE const ValueType& operator[](int32 index) const { return m_array[index]; }
 
-    // Assignment Operator
-    FORCEINLINE const TArray3D& operator=(const TArray3D& right)
-    {
-        //avoid self assignment
-        if (this != &right) {
-            if (m_size != right.m_size) {
-                m_X = right.m_X;
-                m_Y = right.m_Y;
-                m_Z = right.m_Z;
-            }
-            m_array = right.m_array;
-        }
-        return *this;
-    }
-
-    //Array bracket operator. Returns reference to element at give index.
-    FORCEINLINE const T& operator[](int32 Index) const
-    {
-        return m_array[Index];
-    }
-
-    //Array bracket operator. Returns reference to element at give index.
-    FORCEINLINE T& operator[](int32 Index)
-    {
-        return m_array[Index];
-    }
+    // Array bracket operator. Returns reference to element at give index.
+    FORCEINLINE ValueType& operator[](int32 index) { return m_array[index]; }
 
     // Multiplication - Single value
-    FORCEINLINE TArray3D operator*(T value)
+    FORCEINLINE TArray3D operator*(ValueType value)
     {
-        TArray3D<T> result(*this);
+        TArray3D<ValueType> result(*this);
         result *= value;
         return result;
     }
 
     // Assignment by Multiplication  - Single value
-    FORCEINLINE void operator*=(T value)
+    FORCEINLINE void operator*=(ValueType value)
     {
         auto count = m_size;
-        while (count--) {
+        while(count--)
+        {
             m_array[count] = m_array[count] * value;
         }
     }
@@ -118,7 +65,7 @@ public:
     // Multiplication - arrIn values
     FORCEINLINE TArray3D operator*(const TArray3D& arrIn)
     {
-        TArray3D<T> result(*this);
+        TArray3D<ValueType> result(*this);
         result *= arrIn;
         return result;
     }
@@ -127,24 +74,26 @@ public:
     FORCEINLINE void operator*=(const TArray3D& arrIn)
     {
         auto count = m_size;
-        while (count--) {
+        while(count--)
+        {
             m_array[count] = m_array[count] * arrIn[count];
         }
     }
 
     // Division - Single value
-    FORCEINLINE TArray3D operator/(T value)
+    FORCEINLINE TArray3D operator/(ValueType value)
     {
-        TArray3D<T> result(*this);
+        TArray3D<ValueType> result(*this);
         result /= value;
         return result;
     }
 
     // Assignment by Division  - Single value
-    FORCEINLINE void operator/=(T value)
+    FORCEINLINE void operator/=(ValueType value)
     {
         auto count = m_size;
-        while (count--) {
+        while(count--)
+        {
             m_array[count] = m_array[count] / value;
         }
     }
@@ -152,7 +101,7 @@ public:
     // Division - arrIn values
     FORCEINLINE TArray3D operator/(const TArray3D& arrIn)
     {
-        TArray3D<T> result(*this);
+        TArray3D<ValueType> result(*this);
         result /= arrIn;
         return result;
     }
@@ -161,24 +110,26 @@ public:
     FORCEINLINE void operator/=(const TArray3D& arrIn)
     {
         auto count = m_size;
-        while (count--) {
+        while(count--)
+        {
             m_array[count] = m_array[count] / arrIn[count];
         }
     }
 
     // Addition - Single value
-    FORCEINLINE TArray3D operator+(T value)
+    FORCEINLINE TArray3D operator+(ValueType value)
     {
-        TArray3D<T> result(*this);
+        TArray3D<ValueType> result(*this);
         result += value;
         return result;
     }
 
     // Assignment by Addition - Single value
-    FORCEINLINE void operator+=(T value)
+    FORCEINLINE void operator+=(ValueType value)
     {
         auto count = m_size;
-        while (count--) {
+        while(count--)
+        {
             m_array[count] = m_array[count] + value;
         }
     }
@@ -186,7 +137,7 @@ public:
     // Addition - arrIn values
     FORCEINLINE TArray3D operator+(const TArray3D& arrIn)
     {
-        TArray3D<T> result(*this);
+        TArray3D<ValueType> result(*this);
         result += arrIn;
         return result;
     }
@@ -195,24 +146,26 @@ public:
     FORCEINLINE void operator+=(const TArray3D& arrIn)
     {
         auto count = m_size;
-        while (count--) {
+        while(count--)
+        {
             m_array[count] = m_array[count] + arrIn[count];
         }
     }
 
     // Subtraction - Single value
-    FORCEINLINE TArray3D operator-(T value)
+    FORCEINLINE TArray3D operator-(ValueType value)
     {
-        TArray3D<T> result(*this);
+        TArray3D<ValueType> result(*this);
         result -= value;
         return result;
     }
 
     // Assignment by Subtraction - Single value
-    FORCEINLINE void operator-=(T value)
+    FORCEINLINE void operator-=(ValueType value)
     {
         auto count = m_size;
-        while (count--) {
+        while(count--)
+        {
             m_array[count] = m_array[count] - value;
         }
     }
@@ -220,7 +173,7 @@ public:
     // Subtraction - arrIn values
     FORCEINLINE TArray3D operator-(TArray3D& arrIn)
     {
-        TArray3D<T> result(*this);
+        TArray3D<ValueType> result(*this);
         result -= arrIn;
         return result;
     }
@@ -229,87 +182,71 @@ public:
     FORCEINLINE void operator-=(TArray3D& arrIn)
     {
         auto count = m_size;
-        while (count--) {
+        while(count--)
+        {
             m_array[count] = m_array[count] - arrIn[count];
         }
     }
 
     // Returns the index in the 1D array from 3D coordinates
-    FORCEINLINE int32 index(int32 x, int32 y, int32 z) const
-    {
-        return x + m_X * (y + m_Y * z);
-    }
+    FORCEINLINE int32 index(int32 x, int32 y, int32 z) const { return x + m_x * (y + m_y * z); }
 
     // Returns the value in the array from the 3D coordinates
-    FORCEINLINE const T& element(int32 x, int32 y, int32 z) const
-    {
-        return m_array[index(x, y, z)];
-    }
+    FORCEINLINE const ValueType& element(int32 x, int32 y, int32 z) const { return m_array[index(x, y, z)]; }
 
-    FORCEINLINE T& element(int32 x, int32 y, int32 z)
-    {
-        return m_array[index(x, y, z)];
-    }
+    FORCEINLINE ValueType& element(int32 x, int32 y, int32 z) { return m_array[index(x, y, z)]; }
 
-    FORCEINLINE int32 GetX() const
-    {
-        return m_X;
-    }
+    FORCEINLINE int32 getX() const { return m_x; }
 
-    FORCEINLINE void SetX(int32 setX)
+    FORCEINLINE void setX(int32 x)
     {
-        m_X = setX;
-        m_size = m_X * m_Y * m_Z;
+        m_x = x;
+        m_size = m_x * m_y * m_z;
         m_array.SetNum(m_size);
     }
 
-    FORCEINLINE int32 GetY() const
-    {
-        return m_Y;
-    }
+    FORCEINLINE int32 getY() const { return m_y; }
 
-    FORCEINLINE void SetY(int32 setY)
+    FORCEINLINE void setY(int32 y)
     {
-        m_Y = setY;
-        m_size = m_X * m_Y * m_Z;
+        m_y = y;
+        m_size = m_x * m_y * m_z;
         m_array.SetNum(m_size);
     }
 
-    FORCEINLINE int32 GetZ() const
-    {
-        return m_Z;
-    }
+    FORCEINLINE int32 getZ() const { return m_z; }
 
-    FORCEINLINE void SetZ(int32 setZ)
+    FORCEINLINE void setZ(int32 z)
     {
-        m_Z = setZ;
-        m_size = m_X * m_Y * m_Z;
+        m_z = z;
+        m_size = m_x * m_y * m_z;
         m_array.SetNum(m_size);
     }
 
-    FORCEINLINE int32 GetSize() const
-    {
-        return m_size;
-    }
+    FORCEINLINE int32 size() const { return m_size; }
 
     // Set entire array to a single value
-    FORCEINLINE void Set(T initialValue)
+    FORCEINLINE void set(ValueType initialValue)
     {
         auto count = m_size;
-        while (count--) {
+        while(count--)
+        {
             m_array[count] = initialValue;
         }
     }
 
     // Set value to a delegate return value
-    FORCEINLINE void Set(TBaseDelegate<T, int32, int32, int32> func)
+    FORCEINLINE void set(TBaseDelegate<ValueType, int32, int32, int32> func)
     {
-        if (!func.IsBound())
+        if(!func.IsBound())
             return;
         auto i = 0;
-        for (auto x = 0; x < m_X; ++x) {
-            for (auto y = 0; y < m_Y; ++y) {
-                for (auto z = 0; z < m_Z; ++z) {
+        for(auto x = 0; x < m_x; ++x)
+        {
+            for(auto y = 0; y < m_y; ++y)
+            {
+                for(auto z = 0; z < m_z; ++z)
+                {
                     m_array[i] = func.Execute(x, y, z);
                     ++i;
                 }
@@ -318,10 +255,10 @@ public:
     }
 
 protected:
-    TArray<T, FDefaultAllocator> m_array; // internal array
+    TArray<ValueType, FDefaultAllocator> m_array; // internal array
 
-    int32 m_X; // X dimension of array
-    int32 m_Y; // Y dimension of array
-    int32 m_Z; // Z dimension of array
+    int32 m_x; // X dimension of array
+    int32 m_y; // Y dimension of array
+    int32 m_z; // Z dimension of array
     int32 m_size; // Total size of array
 };

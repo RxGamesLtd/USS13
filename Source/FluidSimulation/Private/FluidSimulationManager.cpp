@@ -1,5 +1,5 @@
 // The MIT License (MIT)
-// Copyright (c) 2017 RxCompile
+// Copyright (c) 2018 RxCompile
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 // documentation files (the "Software"), to deal in the Software without restriction, including without limitation
@@ -19,136 +19,173 @@
 #include "AtmoStruct.h"
 #include "FluidSimulation3D.h"
 
-FFluidSimulationManager::FFluidSimulationManager()
-{
-    bIsTaskStopped = true;
-    Size = FIntVector(1, 1, 1);
-}
+FFluidSimulationManager::FFluidSimulationManager() : m_isTaskStopped(true), m_size(1, 1, 1) {}
 
-void FFluidSimulationManager::SetSize(FVector size)
+void FFluidSimulationManager::setSize(FVector size)
 {
     // Preserve boundaries
-    Size = FIntVector(
-               FMath::CeilToInt(size.X),
-               FMath::CeilToInt(size.Y),
-               FMath::CeilToInt(size.Z))
-            * 2
-        + FIntVector(2);
+    m_size = {FMath::CeilToInt(size.X), FMath::CeilToInt(size.Y), FMath::CeilToInt(size.Z)};
+    // m_size *= 2;
+    m_size += FIntVector(2);
 }
 
-void FFluidSimulationManager::Start()
+void FFluidSimulationManager::start()
 {
-    Thread.Reset(FRunnableThread::Create(this, TEXT("FFluidSimulationManager")));
+    m_thread.Reset(FRunnableThread::Create(this, TEXT("FFluidSimulationManager")));
 }
 
 bool FFluidSimulationManager::Init()
 {
-    sim = MakeUnique<FluidSimulation3D>(Size.X, Size.Y, Size.Z, 0.1f);
+    m_sim = MakeUnique<FluidSimulation3D>(m_size.X, m_size.Y, m_size.Z, 0.1f);
     UE_LOG(LogFluidSimulation, Log, TEXT("Atmo thread init start"));
 
-    /*
-    TBaseDelegate<float, int32, int32, int32> binder;
-    binder.BindSP(this, &FFluidSimulationManager::InitializeAtmoCell, static_cast<uint32>(0));
-    sim->Pressure().SourceO2().Set(binder);
-    UE_LOG(LogFluidSimulation, Log, TEXT("Atmo O2 values loaded"));
+    m_sim->pressure().reset(10.f);
+    {
+        TBaseDelegate<float, int32, int32, int32> binder;
+        binder.BindRaw(this, &FFluidSimulationManager::initializeAtmoCell, static_cast<uint32>(0));
+        m_sim->pressure().destinationO2().set(binder);
+        UE_LOG(LogFluidSimulation, Log, TEXT("Atmo O2 values loaded"));
+    }
 
-    binder.BindSP(this, &FFluidSimulationManager::InitializeAtmoCell, static_cast<uint32>(1));
-    sim->Pressure().SourceN2().Set(binder);
-    UE_LOG(LogFluidSimulation, Log, TEXT("Atmo N2 values loaded"));
+    {
+        TBaseDelegate<float, int32, int32, int32> binder;
+        binder.BindRaw(this, &FFluidSimulationManager::initializeAtmoCell, static_cast<uint32>(1));
+        m_sim->pressure().destinationN2().set(binder);
+        UE_LOG(LogFluidSimulation, Log, TEXT("Atmo N2 values loaded"));
+    }
 
-    binder.BindSP(this, &FFluidSimulationManager::InitializeAtmoCell, static_cast<uint32>(2));
-    sim->Pressure().SourceCO2().Set(binder);
-    UE_LOG(LogFluidSimulation, Log, TEXT("Atmo CO2 values loaded"));
+    {
+        TBaseDelegate<float, int32, int32, int32> binder;
+        binder.BindRaw(this, &FFluidSimulationManager::initializeAtmoCell, static_cast<uint32>(2));
+        m_sim->pressure().destinationCO2().set(binder);
+        UE_LOG(LogFluidSimulation, Log, TEXT("Atmo CO2 values loaded"));
+    }
 
-    binder.BindSP(this, &FFluidSimulationManager::InitializeAtmoCell, static_cast<uint32>(3));
-    sim->Pressure().SourceToxin().Set(binder);
-    UE_LOG(LogFluidSimulation, Log, TEXT("Atmo Toxin values loaded"));
-    */
+    {
+        TBaseDelegate<float, int32, int32, int32> binder;
+        binder.BindRaw(this, &FFluidSimulationManager::initializeAtmoCell, static_cast<uint32>(3));
+        m_sim->pressure().destinationToxin().set(binder);
+        UE_LOG(LogFluidSimulation, Log, TEXT("Atmo Toxin values loaded"));
+    }
 
-    sim->DiffusionIterations(15);
-    sim->PressureAccel(1.0f);
-    sim->Vorticity(0.03f);
-    sim->m_bBoundaryCondition = true;
+    // apply to source
+    m_sim->pressure().swap();
 
-    sim->Pressure().Properties().diffusion = 1.0f;
-    sim->Pressure().Properties().advection = 1.0f;
+    // reset velocity map
+    m_sim->velocity().reset(0.0f);
 
-    sim->Velocity().Properties().decay = 0.5f;
-    sim->Velocity().Properties().advection = 1.0f;
+    // set solids
+    {
+        TBaseDelegate<EFlowDirection, int32, int32, int32> binder;
+        binder.BindRaw(this, &FFluidSimulationManager::initializeSolid);
+        m_sim->solids().set(binder);
+    }
 
-    bIsTaskStopped = false;
+    m_sim->diffusionIterations(15);
+    m_sim->pressureAccel(1.0f);
+    m_sim->vorticity(0.03f);
+
+    m_sim->pressure().properties().diffusion = 1.0f;
+    m_sim->pressure().properties().advection = 1.0f;
+
+    m_sim->velocity().properties().decay = 0.5f;
+    m_sim->velocity().properties().advection = 1.0f;
+
+    m_isTaskStopped = false;
     UE_LOG(LogFluidSimulation, Log, TEXT("Atmo thread initialized"));
     return true;
 }
 
 uint32 FFluidSimulationManager::Run()
 {
-    //Initial wait before starting
+    // Initial wait before starting
     FPlatformProcess::Sleep(0.03);
     UE_LOG(LogFluidSimulation, Log, TEXT("Atmo thread started"));
 
-    while (!bIsTaskStopped) {
-        if (!sim.IsValid())
+    while(!m_isTaskStopped)
+    {
+        if(!m_sim.IsValid())
             break;
 
-        sim->Update();
-        //prevent thread from using too many resources
-        FPlatformProcess::Sleep(0.1f);
+        m_sim->update();
+        // prevent thread from using too many resources
+        FPlatformProcess::Sleep(0.01f);
     }
     UE_LOG(LogFluidSimulation, Log, TEXT("Atmo thread is exited"));
-    bIsTaskStopped = false;
-    sim = nullptr;
+    m_isTaskStopped = false;
+    m_sim->reset();
 
     return 0;
 }
 
 void FFluidSimulationManager::Stop()
 {
-    bIsTaskStopped = true;
-    Thread->WaitForCompletion();
+    m_isTaskStopped = true;
+    m_thread->WaitForCompletion();
 }
 
-FAtmoStruct FFluidSimulationManager::GetValue(int32 x, int32 y, int32 z) const
+FAtmoStruct FFluidSimulationManager::getValue(int32 x, int32 y, int32 z) const
 {
-    FAtmoStruct atmo {};
 
-    if (x < 0 || x >= Size.X) {
-        return atmo;
+    if(x < 0 || x >= m_size.X)
+    {
+        return {};
     }
-    if (y < 0 || y >= Size.Y) {
-        return atmo;
+    if(y < 0 || y >= m_size.Y)
+    {
+        return {};
     }
-    if (z < 0 || z >= Size.Z) {
-        return atmo;
+    if(z < 0 || z >= m_size.Z)
+    {
+        return {};
     }
 
-    atmo.O2 = sim->Pressure().SourceO2().element(x, y, z);
-    atmo.N2 = sim->Pressure().SourceN2().element(x, y, z);
-    atmo.CO2 = sim->Pressure().SourceCO2().element(x, y, z);
-    atmo.Toxin = sim->Pressure().SourceToxin().element(x, y, z);
+    FAtmoStruct atmo;
+    atmo.O2 = m_sim->pressure().sourceO2().element(x, y, z);
+    atmo.N2 = m_sim->pressure().sourceN2().element(x, y, z);
+    atmo.CO2 = m_sim->pressure().sourceCO2().element(x, y, z);
+    atmo.Toxin = m_sim->pressure().sourceToxin().element(x, y, z);
 
     return atmo;
 }
 
-FVector FFluidSimulationManager::GetVelocity(int32 x, int32 y, int32 z) const
+FVector FFluidSimulationManager::getVelocity(int32 x, int32 y, int32 z) const
 {
-    if (x < 0 || x >= Size.X)
-        return FVector();
-    if (y < 0 || y >= Size.Y)
-        return FVector();
-    if (z < 0 || z >= Size.Z)
-        return FVector();
+    if(x < 0 || x >= m_size.X)
+        return {};
+    if(y < 0 || y >= m_size.Y)
+        return {};
+    if(z < 0 || z >= m_size.Z)
+        return {};
 
-    auto sourceX = sim->Velocity().SourceX().element(x, y, z);
-    auto sourceY = sim->Velocity().SourceY().element(x, y, z);
-    auto sourceZ = sim->Velocity().SourceZ().element(x, y, z);
-    auto val = FVector(sourceX, sourceY, sourceZ);
+    auto sourceX = m_sim->velocity().sourceX().element(x, y, z);
+    auto sourceY = m_sim->velocity().sourceY().element(x, y, z);
+    auto sourceZ = m_sim->velocity().sourceZ().element(x, y, z);
 
-    return val;
+    return {sourceX, sourceY, sourceZ};
 }
 
-float FFluidSimulationManager::InitializeAtmoCell(int32 x, int32 y, int32 z, uint32 type) const
+EFlowDirection FFluidSimulationManager::initializeSolid(int32 x, int32 y, int32 z) const
+{
+    EFlowDirection mask = EFlowDirection::None;
+    // if(x > 0)
+    //    mask |= EFlowDirection::XMinus;
+    // if(x < m_size.X - 1)
+    //    mask |= EFlowDirection::XPlus;
+    // if(y > 0)
+    //    mask |= EFlowDirection::YMinus;
+    // if(y < m_size.Y - 1)
+    //    mask |= EFlowDirection::YPlus;
+    // if(z > 0)
+    //    mask |= EFlowDirection::ZMinus;
+    // if(z < m_size.Z - 1)
+    //    mask |= EFlowDirection::ZPlus;
+    return mask;
+}
+
+float FFluidSimulationManager::initializeAtmoCell(int32 x, int32 y, int32 z, uint32 type) const
 {
     // TODO: Load from file
-    return 0.0f;
+    // For now just random
+    return FMath::FRandRange(10.0f, 1200.0f);
 }
