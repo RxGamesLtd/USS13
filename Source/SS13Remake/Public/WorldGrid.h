@@ -22,6 +22,16 @@
 
 #include "WorldGrid.generated.h"
 
+UENUM()
+enum class EWallDirection : uint8
+{
+    Invalid,
+    North,
+    South,
+    East,
+    West
+};
+
 UCLASS()
 class SS13REMAKE_API AWorldGrid : public AActor
 {
@@ -30,6 +40,8 @@ class SS13REMAKE_API AWorldGrid : public AActor
 public:
     // Sets default values for this actor's properties
     AWorldGrid();
+
+    void OnConstruction(const FTransform& transform) override;
 
     // Called when the game starts or when spawned
     void BeginPlay() override;
@@ -43,11 +55,34 @@ public:
     UPROPERTY(Category = "Grid", BlueprintReadWrite, EditAnywhere)
     FVector CellExtent;
 
-    UFUNCTION(Category = "Grid", BlueprintCallable)
-    FAtmoStruct GetAtmoStatusByLocation(FVector location) const;
+    UPROPERTY(Category = "Grid", BlueprintReadWrite, EditAnywhere)
+    float FloorDepth;
 
-protected:
-    FAtmoStruct GetAtmoStatusByIndex(int32 x, int32 y, int32 z) const;
+    UPROPERTY(Category = "Grid", BlueprintReadWrite, EditAnywhere)
+    float WallThickness;
+
+    UPROPERTY(BlueprintReadOnly)
+    UBoxComponent* GroundCollisionComponent;
+
+    UPROPERTY(BlueprintReadOnly)
+    UStaticMeshComponent* GroundMeshComponent;
+
+    UFUNCTION(Category = "Grid", BlueprintCallable, BlueprintPure)
+    FAtmoStruct GetAtmosphericsReport(const FVector& location) const;
+
+    UFUNCTION(Category = "Grid", BlueprintCallable, BlueprintPure)
+    bool GetFloorBlockConstructionLocation(const FVector& hitLocation,
+                                           FVector& floorCenter,
+                                           FVector& floorExtent) const;
+
+    UFUNCTION(Category = "Grid", BlueprintCallable, BlueprintPure)
+    bool GetWallBlockConstructionLocation(const FVector& hitLocation,
+                                          FVector& wallCenter,
+                                          FVector& wallExtent,
+                                          EWallDirection& wallDirection) const;
+
+private:
+    FIntVector getCellIndexFromWorldLocation(const FVector& location) const;
 
     TUniquePtr<FFluidSimulationManager> m_atmosphericsManager;
 };

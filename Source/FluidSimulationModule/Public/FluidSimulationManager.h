@@ -17,6 +17,7 @@
 #pragma once
 
 #include "FluidSimulation3D.h"
+#include "AtmoStruct.h"
 
 class FLUIDSIMULATIONMODULE_API FFluidSimulationManager : public FRunnable
 {
@@ -35,9 +36,14 @@ public:
 
     void Stop() override;
 
-    struct FAtmoStruct getValue(int32 x, int32 y, int32 z) const;
+    FAtmoStruct getPressure(int32 x, int32 y, int32 z) const;
 
     FVector getVelocity(int32 x, int32 y, int32 z) const;
+
+private:
+    EFlowDirection initializeSolid(int32 x, int32 y, int32 z) const;
+
+    float initializeAtmoCell(int32 x, int32 y, int32 z, uint32 type) const;
 
 private:
     /** SimulationObject */
@@ -48,8 +54,4 @@ private:
     FThreadSafeBool m_isTaskStopped;
 
     FIntVector m_size;
-
-protected:
-    EFlowDirection initializeSolid(int32 x, int32 y, int32 z) const;
-    float initializeAtmoCell(int32 x, int32 y, int32 z, uint32 type) const;
 };

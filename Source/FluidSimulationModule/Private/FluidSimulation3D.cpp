@@ -26,11 +26,13 @@
 #include "FluidSimulation3D.h"
 #include "FluidSimulationModule.h"
 
-DECLARE_CYCLE_STAT(TEXT("Fluid simulation update"), STAT_AtmosUpdatesCount, STATGROUP_AtmosStats)
-DECLARE_CYCLE_STAT(TEXT("Fluid simulation update: diffusion"), STAT_AtmosDiffusionUpdatesCount, STATGROUP_AtmosStats)
-DECLARE_CYCLE_STAT(TEXT("Fluid simulation update: forces"), STAT_AtmosForcesUpdatesCount, STATGROUP_AtmosStats)
-DECLARE_CYCLE_STAT(TEXT("Fluid simulation update: advection"), STAT_AtmosAdvectionUpdatesCount, STATGROUP_AtmosStats)
-DECLARE_CYCLE_STAT(TEXT("Fluid simulation stable diffusion"), STAT_AtmosStableDiffusion, STATGROUP_AtmosStats)
+DECLARE_CYCLE_STAT(TEXT("Fluid simulation update"), STAT_AtmosphericsUpdate, STATGROUP_AtmosStats)
+DECLARE_CYCLE_STAT(TEXT("Fluid simulation update: diffusion"), STAT_UpdateDiffusion, STATGROUP_AtmosStats)
+DECLARE_CYCLE_STAT(TEXT("Fluid simulation update: forces"), STAT_UpdateForces, STATGROUP_AtmosStats)
+DECLARE_CYCLE_STAT(TEXT("Fluid simulation update: advection"), STAT_UpdateAdvection, STATGROUP_AtmosStats)
+DECLARE_CYCLE_STAT(TEXT("Stable diffusion"), STAT_StableDiffusion, STATGROUP_AtmosStats)
+DECLARE_CYCLE_STAT(TEXT("Transfer pressure"), STAT_TransferPressure, STATGROUP_AtmosStats)
+DECLARE_CYCLE_STAT(TEXT("Check blocked solids"), STAT_CheckBlocked, STATGROUP_AtmosStats)
 
 FluidSimulation3D::FluidSimulation3D(int32 xSize, int32 ySize, int32 zSize, float dt)
   : m_solids(xSize - 1, ySize - 1, zSize - 1)
@@ -52,7 +54,7 @@ FluidSimulation3D::FluidSimulation3D(int32 xSize, int32 ySize, int32 zSize, floa
 // second GUI slider
 void FluidSimulation3D::update()
 {
-    SCOPE_CYCLE_COUNTER(STAT_AtmosUpdatesCount)
+    SCOPE_CYCLE_COUNTER(STAT_AtmosphericsUpdate)
     updateDiffusion();
     updateForces();
     updateAdvection();
@@ -61,7 +63,7 @@ void FluidSimulation3D::update()
 // Apply diffusion across the grids
 void FluidSimulation3D::updateDiffusion()
 {
-    SCOPE_CYCLE_COUNTER(STAT_AtmosDiffusionUpdatesCount)
+    SCOPE_CYCLE_COUNTER(STAT_UpdateDiffusion)
     // Skip diffusion if disabled
     // Diffusion of Velocity
     if(!FMath::IsNearlyZero(m_velocity.properties().diffusion))
@@ -80,13 +82,13 @@ void FluidSimulation3D::updateDiffusion()
     // Diffusion of Pressure
     if(!FMath::IsNearlyZero(m_pressure.properties().diffusion))
     {
-        const auto scaledDiffusion = m_pressure.properties().diffusion / static_cast<float>(m_diffusionIter);
+        const auto scale = m_pressure.properties().diffusion / static_cast<float>(m_diffusionIter);
         for(auto i = 0; i < m_diffusionIter; ++i)
         {
-            diffusionStable(m_pressure.sourceO2(), m_pressure.destinationO2(), scaledDiffusion);
-            diffusionStable(m_pressure.sourceCO2(), m_pressure.destinationCO2(), scaledDiffusion);
-            diffusionStable(m_pressure.sourceN2(), m_pressure.destinationN2(), scaledDiffusion);
-            diffusionStable(m_pressure.sourceToxin(), m_pressure.destinationToxin(), scaledDiffusion);
+            diffusionStable(m_pressure.oxigen().source(), m_pressure.oxigen().destination(), scale);
+            diffusionStable(m_pressure.nitrogen().source(), m_pressure.nitrogen().destination(), scale);
+            diffusionStable(m_pressure.carbonDioxide().source(), m_pressure.carbonDioxide().destination(), scale);
+            diffusionStable(m_pressure.toxin().source(), m_pressure.toxin().destination(), scale);
             m_pressure.swap();
         }
     }
@@ -95,7 +97,7 @@ void FluidSimulation3D::updateDiffusion()
 // Apply forces across the grids
 void FluidSimulation3D::updateForces()
 {
-    SCOPE_CYCLE_COUNTER(STAT_AtmosForcesUpdatesCount)
+    SCOPE_CYCLE_COUNTER(STAT_UpdateForces)
     // Apply dampening force on velocity due to viscosity
     if(!FMath::IsNearlyZero(m_velocity.properties().decay))
     {
@@ -121,7 +123,7 @@ void FluidSimulation3D::updateForces()
 // Apply advection across the grids
 void FluidSimulation3D::updateAdvection()
 {
-    SCOPE_CYCLE_COUNTER(STAT_AtmosAdvectionUpdatesCount)
+    SCOPE_CYCLE_COUNTER(STAT_UpdateAdvection)
     const auto avgDimension = (m_sizeX + m_sizeY + m_sizeZ) / 3.0f;
     const auto stdDimension = 100.0f;
 
@@ -144,28 +146,32 @@ void FluidSimulation3D::updateAdvection()
 
     reverseSignedAdvection(m_velocity, m_velocity.properties().advection * advectionScale);
 
-    /*SetBoundary(mp_velocity.sourceX());
-    SetBoundary(mp_velocity.sourceY());
-    SetBoundary(mp_velocity.sourceZ());*/
-
     // Advect Pressure. Represents compressible fluid
-    forwardAdvection(
-      m_pressure.sourceO2(), m_pressure.destinationO2(), m_pressure.properties().advection * advectionScale);
-    forwardAdvection(
-      m_pressure.sourceN2(), m_pressure.destinationN2(), m_pressure.properties().advection * advectionScale);
-    forwardAdvection(
-      m_pressure.sourceCO2(), m_pressure.destinationCO2(), m_pressure.properties().advection * advectionScale);
-    forwardAdvection(
-      m_pressure.sourceToxin(), m_pressure.destinationToxin(), m_pressure.properties().advection * advectionScale);
+    forwardAdvection(m_pressure.oxigen().source(),
+                     m_pressure.oxigen().destination(),
+                     m_pressure.properties().advection * advectionScale);
+    forwardAdvection(m_pressure.nitrogen().source(),
+                     m_pressure.nitrogen().destination(),
+                     m_pressure.properties().advection * advectionScale);
+    forwardAdvection(m_pressure.carbonDioxide().source(),
+                     m_pressure.carbonDioxide().destination(),
+                     m_pressure.properties().advection * advectionScale);
+    forwardAdvection(m_pressure.toxin().source(),
+                     m_pressure.toxin().destination(),
+                     m_pressure.properties().advection * advectionScale);
     m_pressure.swap();
-    reverseAdvection(
-      m_pressure.sourceO2(), m_pressure.destinationO2(), m_pressure.properties().advection * advectionScale);
-    reverseAdvection(
-      m_pressure.sourceN2(), m_pressure.destinationN2(), m_pressure.properties().advection * advectionScale);
-    reverseAdvection(
-      m_pressure.sourceCO2(), m_pressure.destinationCO2(), m_pressure.properties().advection * advectionScale);
-    reverseAdvection(
-      m_pressure.sourceToxin(), m_pressure.destinationToxin(), m_pressure.properties().advection * advectionScale);
+    reverseAdvection(m_pressure.oxigen().source(),
+                     m_pressure.oxigen().destination(),
+                     m_pressure.properties().advection * advectionScale);
+    reverseAdvection(m_pressure.nitrogen().source(),
+                     m_pressure.nitrogen().destination(),
+                     m_pressure.properties().advection * advectionScale);
+    reverseAdvection(m_pressure.carbonDioxide().source(),
+                     m_pressure.carbonDioxide().destination(),
+                     m_pressure.properties().advection * advectionScale);
+    reverseAdvection(m_pressure.toxin().source(),
+                     m_pressure.toxin().destination(),
+                     m_pressure.properties().advection * advectionScale);
     m_pressure.swap();
 }
 
@@ -329,9 +335,9 @@ void FluidSimulation3D::reverseAdvection(const Fluid3D& in, Fluid3D& out, float 
         {
             for(auto z = 1; z < m_sizeZ - 1; ++z)
             {
-                auto vx = m_velocity.sourceX().element(x, y, z);
-                auto vy = m_velocity.sourceY().element(x, y, z);
-                auto vz = m_velocity.sourceZ().element(x, y, z);
+                const auto vx = m_velocity.sourceX().element(x, y, z);
+                const auto vy = m_velocity.sourceY().element(x, y, z);
+                const auto vz = m_velocity.sourceZ().element(x, y, z);
                 if(!FMath::IsNearlyZero(vx) || !FMath::IsNearlyZero(vy) || !FMath::IsNearlyZero(vz))
                 {
                     // Find the floating point location of the advection
@@ -525,69 +531,6 @@ void FluidSimulation3D::reverseAdvection(const Fluid3D& in, Fluid3D& out, float 
     }
 }
 
-inline float FluidSimulation3D::transferPressure(const Fluid3D& in, int32 x, int32 y, int32 z, float force) const
-{
-    QUICK_SCOPE_CYCLE_COUNTER(TransferPressure);
-    // Take care of boundries
-    if(isBlocked(x, y, z, EFlowDirection::Self))
-    {
-        return 0.f;
-    }
-    auto d = 0.f;
-    auto c = 0.f;
-    if(!isBlocked(x, y, z, EFlowDirection::XPlus))
-    {
-        c += in.element(x + 1, y, z);
-        ++d;
-    }
-    if(!isBlocked(x, y, z, EFlowDirection::XMinus))
-    {
-        c += in.element(x - 1, y, z);
-        ++d;
-    }
-    if(!isBlocked(x, y, z, EFlowDirection::YPlus))
-    {
-        c += in.element(x, y + 1, z);
-        ++d;
-    }
-    if(!isBlocked(x, y, z, EFlowDirection::YMinus))
-    {
-        c += in.element(x, y - 1, z);
-        ++d;
-    }
-    if(!isBlocked(x, y, z, EFlowDirection::ZPlus))
-    {
-        c += in.element(x, y, z + 1);
-        ++d;
-    }
-    if(!isBlocked(x, y, z, EFlowDirection::ZMinus))
-    {
-        c += in.element(x, y, z - 1);
-        ++d;
-    }
-    return in.element(x, y, z) + force * (c - d * in.element(x, y, z));
-}
-
-void FluidSimulation3D::diffusionStable(const Fluid3D& in, Fluid3D& out, float scale) const
-{
-    SCOPE_CYCLE_COUNTER(STAT_AtmosStableDiffusion)
-    const auto force = m_dt * scale;
-
-    if(FMath::IsNegativeFloat(force) || FMath::IsNearlyZero(force))
-        return;
-
-    for(auto x = 0; x < m_sizeX; ++x)
-    {
-        for(auto y = 0; y < m_sizeY; ++y)
-        {
-            for(auto z = 0; z < m_sizeZ; ++z)
-            {
-                out.element(x, y, z) = transferPressure(in, x, y, z, force);
-            }
-        }
-    }
-}
-
 // Signed advection is mass conserving, but allows signed quantities
 // so could be used for velocity, since it's faster.
 void FluidSimulation3D::reverseSignedAdvection(VelPkg3D& v, const float scale) const
@@ -611,9 +554,9 @@ void FluidSimulation3D::reverseSignedAdvection(VelPkg3D& v, const float scale) c
         {
             for(auto z = 1; z < m_sizeZ - 1; ++z)
             {
-                auto vx = m_velocity.sourceX().element(x, y, z);
-                auto vy = m_velocity.sourceY().element(x, y, z);
-                auto vz = m_velocity.sourceZ().element(x, y, z);
+                const auto vx = m_velocity.sourceX().element(x, y, z);
+                const auto vy = m_velocity.sourceY().element(x, y, z);
+                const auto vz = m_velocity.sourceZ().element(x, y, z);
                 if(!FMath::IsNearlyZero(vx) || !FMath::IsNearlyZero(vy) || !FMath::IsNearlyZero(vz))
                 {
                     // Find the floating point location of the advection
@@ -625,14 +568,14 @@ void FluidSimulation3D::reverseSignedAdvection(VelPkg3D& v, const float scale) c
                     const auto bCollide = collide(x, y, z, x1, y1, z1);
 
                     // Find the nearest top-left integer grid point of the advection
-                    auto x1A = FMath::FloorToInt(x1);
-                    auto y1A = FMath::FloorToInt(y1);
-                    auto z1A = FMath::FloorToInt(z1);
+                    const auto x1A = FMath::FloorToInt(x1);
+                    const auto y1A = FMath::FloorToInt(y1);
+                    const auto z1A = FMath::FloorToInt(z1);
 
                     // Store the fractional parts
-                    auto fx1 = x1 - x1A;
-                    auto fy1 = y1 - y1A;
-                    auto fz1 = z1 - z1A;
+                    const auto fx1 = x1 - x1A;
+                    const auto fy1 = y1 - y1A;
+                    const auto fz1 = z1 - z1A;
 
                     // Get amounts from (in) source cells for X velocity
                     auto A_X = (1.0f - fx1) * (1.0f - fy1) * (1.0f - fz1) * v.destinationX().element(x1A, y1A, z1A);
@@ -721,10 +664,74 @@ void FluidSimulation3D::reverseSignedAdvection(VelPkg3D& v, const float scale) c
     v.swap();
 }
 
+float FluidSimulation3D::transferPressure(const Fluid3D& in, int32 x, int32 y, int32 z, float force) const
+{
+    SCOPE_CYCLE_COUNTER(STAT_TransferPressure);
+    // Take care of boundries
+    if(isBlocked(x, y, z, EFlowDirection::Self))
+    {
+        return 0.f;
+    }
+    auto d = 0.f;
+    auto c = 0.f;
+    if(!isBlocked(x, y, z, EFlowDirection::XPlus))
+    {
+        c += in.element(x + 1, y, z);
+        ++d;
+    }
+    if(!isBlocked(x, y, z, EFlowDirection::XMinus))
+    {
+        c += in.element(x - 1, y, z);
+        ++d;
+    }
+    if(!isBlocked(x, y, z, EFlowDirection::YPlus))
+    {
+        c += in.element(x, y + 1, z);
+        ++d;
+    }
+    if(!isBlocked(x, y, z, EFlowDirection::YMinus))
+    {
+        c += in.element(x, y - 1, z);
+        ++d;
+    }
+    if(!isBlocked(x, y, z, EFlowDirection::ZPlus))
+    {
+        c += in.element(x, y, z + 1);
+        ++d;
+    }
+    if(!isBlocked(x, y, z, EFlowDirection::ZMinus))
+    {
+        c += in.element(x, y, z - 1);
+        ++d;
+    }
+    return in.element(x, y, z) + force * (c - d * in.element(x, y, z));
+}
+
+void FluidSimulation3D::diffusionStable(const Fluid3D& in, Fluid3D& out, float scale) const
+{
+    SCOPE_CYCLE_COUNTER(STAT_StableDiffusion)
+    const auto force = m_dt * scale;
+
+    if(FMath::IsNegativeFloat(force) || FMath::IsNearlyZero(force))
+        return;
+
+    for(auto x = 0; x < m_sizeX; ++x)
+    {
+        for(auto y = 0; y < m_sizeY; ++y)
+        {
+            for(auto z = 0; z < m_sizeZ; ++z)
+            {
+                out.element(x, y, z) = transferPressure(in, x, y, z, force);
+            }
+        }
+    }
+}
+
 // Checks if destination point during advection is out of bounds and pulls point
 // in if needed
 bool FluidSimulation3D::collide(int32 thisX, int32 thisY, int32 thisZ, float& newX, float& newY, float& newZ) const
 {
+    SCOPE_CYCLE_COUNTER(STAT_TransferPressure);
     const auto maxAdvect = 1.5f - KINDA_SMALL_NUMBER; // 1.5 - is center of neighbor cell
     auto bCollide = false;
 
@@ -804,6 +811,7 @@ bool FluidSimulation3D::collide(int32 thisX, int32 thisY, int32 thisZ, float& ne
 
 bool FluidSimulation3D::isBlocked(int32 x, int32 y, int32 z, EFlowDirection dir) const
 {
+    SCOPE_CYCLE_COUNTER(STAT_CheckBlocked);
     if(x == 0 || x == m_sizeX - 1)
     {
         return true;
@@ -829,6 +837,7 @@ bool FluidSimulation3D::isBlocked(int32 x, int32 y, int32 z, EFlowDirection dir)
     default: UE_LOG(LogFluidSimulation, Verbose, TEXT("Atmos tried to check with undefined direction!")); return false;
     }
 }
+
 // Apply acceleration due to pressure
 void FluidSimulation3D::pressureAcceleration(const float scale)
 {
@@ -845,21 +854,21 @@ void FluidSimulation3D::pressureAcceleration(const float scale)
             for(auto z = 0; z < m_sizeZ - 1; ++z)
             {
                 // Pressure differential between points to get an accelleration force.
-                const auto srcPress = m_pressure.sourceO2().element(x, y, z) + m_pressure.sourceN2().element(x, y, z) +
-                                      m_pressure.sourceCO2().element(x, y, z) +
-                                      m_pressure.sourceToxin().element(x, y, z);
+                auto& o2 = m_pressure.oxigen().source();
+                auto& n2 = m_pressure.nitrogen().source();
+                auto& co2 = m_pressure.carbonDioxide().source();
+                auto& toxin = m_pressure.toxin().source();
+                const auto srcPress =
+                  o2.element(x, y, z) + n2.element(x, y, z) + co2.element(x, y, z) + toxin.element(x, y, z);
 
-                const auto destX =
-                  m_pressure.sourceO2().element(x + 1, y, z) + m_pressure.sourceN2().element(x + 1, y, z) +
-                  m_pressure.sourceCO2().element(x + 1, y, z) + m_pressure.sourceToxin().element(x + 1, y, z);
+                const auto destX = o2.element(x + 1, y, z) + n2.element(x + 1, y, z) + co2.element(x + 1, y, z) +
+                                   toxin.element(x + 1, y, z);
 
-                const auto destY =
-                  m_pressure.sourceO2().element(x, y + 1, z) + m_pressure.sourceN2().element(x, y + 1, z) +
-                  m_pressure.sourceCO2().element(x, y + 1, z) + m_pressure.sourceToxin().element(x, y + 1, z);
+                const auto destY = o2.element(x, y + 1, z) + n2.element(x, y + 1, z) + co2.element(x, y + 1, z) +
+                                   toxin.element(x, y + 1, z);
 
-                const auto destZ =
-                  m_pressure.sourceO2().element(x, y, z + 1) + m_pressure.sourceN2().element(x, y, z + 1) +
-                  m_pressure.sourceCO2().element(x, y, z + 1) + m_pressure.sourceToxin().element(x, y, z + 1);
+                const auto destZ = o2.element(x, y, z + 1) + n2.element(x, y, z + 1) + co2.element(x, y, z + 1) +
+                                   toxin.element(x, y, z + 1);
 
                 const auto forceX = destX - srcPress;
                 const auto forceY = destY - srcPress;
@@ -974,5 +983,5 @@ void FluidSimulation3D::reset()
 {
     m_pressure.reset(0.0f);
     m_velocity.reset(0.0f);
-    m_solids.set(EFlowDirection::None);
+    m_solids.set(EFlowDirection::Max);
 }

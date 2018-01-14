@@ -47,14 +47,10 @@ public:
     void reset(float value);
 
     // Accessors
-    const Fluid3D& sourceO2() const { return m_data[EGasType::O2].source(); }
-    Fluid3D& destinationO2() { return m_data[EGasType::O2].destination(); }
-    const Fluid3D& sourceN2() const { return m_data[EGasType::N2].source(); }
-    Fluid3D& destinationN2() { return m_data[EGasType::N2].destination(); }
-    const Fluid3D& sourceCO2() const { return m_data[EGasType::CO2].source(); }
-    Fluid3D& destinationCO2() { return m_data[EGasType::CO2].destination(); }
-    const Fluid3D& sourceToxin() const { return m_data[EGasType::Toxin].source(); }
-    Fluid3D& destinationToxin() { return m_data[EGasType::Toxin].destination(); }
+    FluidPkg3D& oxigen() { return m_data[EGasType::O2]; }
+    FluidPkg3D& nitrogen() { return m_data[EGasType::N2]; }
+    FluidPkg3D& carbonDioxide() { return m_data[EGasType::CO2]; }
+    FluidPkg3D& toxin() { return m_data[EGasType::Toxin]; }
 
     const FluidProperties& properties() const { return m_prop; }
     FluidProperties& properties() { return m_prop; }

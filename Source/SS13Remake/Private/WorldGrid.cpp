@@ -22,6 +22,26 @@ AWorldGrid::AWorldGrid()
 {
     PrimaryActorTick.bCanEverTick = true;
     m_atmosphericsManager = MakeUnique<FFluidSimulationManager>();
+
+    RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+
+    GroundCollisionComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("GroundCollision"));
+    GroundCollisionComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
+    GroundCollisionComponent->SetCollisionProfileName(FName(TEXT("Floor")));
+
+    static ConstructorHelpers::FObjectFinder<UStaticMesh> s_boxMesh(TEXT("StaticMesh'/Engine/BasicShapes/Cube.Cube'"));
+    GroundMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("GroundMesh"));
+    GroundMeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
+    GroundMeshComponent->SetStaticMesh(s_boxMesh.Object);
+}
+
+void AWorldGrid::OnConstruction(const FTransform& transform)
+{
+    Super::OnConstruction(transform);
+    auto gridFloorSize = Size * CellExtent;
+    gridFloorSize.Z = 1.0f;
+    GroundCollisionComponent->SetBoxExtent(gridFloorSize);
+    GroundMeshComponent->SetRelativeScale3D(gridFloorSize / 50.0f);
 }
 
 // Called when the game starts or when spawned
@@ -38,26 +58,88 @@ void AWorldGrid::Tick(float deltaTime)
     Super::Tick(deltaTime);
 }
 
-FAtmoStruct AWorldGrid::GetAtmoStatusByIndex(int32 x, int32 y, int32 z) const
+FAtmoStruct AWorldGrid::GetAtmosphericsReport(const FVector& location) const
 {
+    const auto index = getCellIndexFromWorldLocation(location);
+    if(index == FIntVector::NoneValue)
+        return {};
     if(!m_atmosphericsManager->isStarted())
         return {};
 
-    return m_atmosphericsManager->getValue(x, y, z);
+    return m_atmosphericsManager->getPressure(index.X, index.Y, index.Z);
 }
 
-FAtmoStruct AWorldGrid::GetAtmoStatusByLocation(FVector location) const
+bool AWorldGrid::GetFloorBlockConstructionLocation(const FVector& hitLocation,
+                                                   FVector& floorCenter,
+                                                   FVector& floorExtent) const
 {
-    auto halfSize = Size * CellExtent / 2.0f + CellExtent;
-    // halfSize.Z -= CellExtent.Z / 2.0f;
-    auto worldCellSize = CellExtent * 2.0f;
-    auto index = (location - this->GetActorLocation() + halfSize) / worldCellSize;
+    const auto index = getCellIndexFromWorldLocation(hitLocation);
+    if(index == FIntVector::NoneValue)
+        return false;
 
-    auto x = FMath::RoundToInt(index.X);
-    auto y = FMath::RoundToInt(index.Y);
-    auto z = FMath::RoundToInt(index.Z);
+    floorCenter = CellExtent * FVector(index.X, index.Y, index.Z) + GetActorLocation();
+    floorCenter.Z -= CellExtent.Z;
+    floorExtent = FVector{CellExtent.X, CellExtent.Y, FloorDepth};
+    return true;
+}
 
-    auto ret = GetAtmoStatusByIndex(x, y, z);
+bool AWorldGrid::GetWallBlockConstructionLocation(const FVector& hitLocation,
+                                                  FVector& wallCenter,
+                                                  FVector& wallExtent,
+                                                  EWallDirection& wallDirection) const
+{
+    const auto index = getCellIndexFromWorldLocation(hitLocation);
+    if(index == FIntVector::NoneValue)
+        return false;
 
-    return ret;
+    const auto worldCellSize = CellExtent * 2.0f;
+    const auto halfSize = Size * CellExtent / 2.0f + CellExtent;
+    auto floorCenter = worldCellSize * FVector(index.X, index.Y, index.Z) + GetActorLocation() - halfSize;
+    floorCenter.Z -= CellExtent.Z;
+    const auto direction = (hitLocation - floorCenter).GetSafeNormal2D();
+    if(direction.X > 0.5f)
+    {
+        wallDirection = EWallDirection::East;
+        wallCenter = floorCenter + FVector{CellExtent.X, 0.0f, CellExtent.Z};
+        wallExtent = FVector{WallThickness, CellExtent.Y, CellExtent.Z};
+        return true;
+    }
+    if(direction.X < -0.5f)
+    {
+        wallDirection = EWallDirection::West;
+        wallCenter = floorCenter + FVector{-CellExtent.X, 0.0f, CellExtent.Z};
+        wallExtent = FVector{WallThickness, CellExtent.Y, CellExtent.Z};
+        return true;
+    }
+    if(direction.Y > 0.5f)
+    {
+        wallDirection = EWallDirection::North;
+        wallCenter = floorCenter + FVector{0.0f, CellExtent.Y, CellExtent.Z};
+        wallExtent = FVector{CellExtent.X, WallThickness, CellExtent.Z};
+        return true;
+    }
+    if(direction.Y < -0.5f)
+    {
+        wallDirection = EWallDirection::South;
+        wallCenter = floorCenter + FVector{0.0f, -CellExtent.Y, CellExtent.Z};
+        wallExtent = FVector{CellExtent.X, WallThickness, CellExtent.Z};
+        return true;
+    }
+    wallDirection = EWallDirection::Invalid;
+    return false;
+}
+
+FIntVector AWorldGrid::getCellIndexFromWorldLocation(const FVector& location) const
+{
+    const auto halfSize = Size * CellExtent / 2.0f + CellExtent;
+    const auto worldCellSize = CellExtent * 2.0f;
+    const auto index = (location - this->GetActorLocation() + halfSize) / worldCellSize;
+    if(index.X < 0 || index.X >= Size.X)
+        return FIntVector::NoneValue;
+    if(index.Y < 0 || index.Y >= Size.Y)
+        return FIntVector::NoneValue;
+    if(index.Z < 0 || index.Z >= Size.Z)
+        return FIntVector::NoneValue;
+
+    return {FMath::RoundToInt(index.X), FMath::RoundToInt(index.Y), FMath::RoundToInt(index.Z)};
 }

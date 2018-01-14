@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "{296150F3-4D23-B2AE-F035-02ACDF985186}",
+	"EngineAssociation": "4.18",
 	"Category": "",
 	"Description": "",
 	"Modules": [
@@ -13,7 +13,7 @@
 			]
 		},
 		{
-			"Name": "FluidSimulation",
+			"Name": "FluidSimulationModule",
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
 			"AdditionalDependencies": [

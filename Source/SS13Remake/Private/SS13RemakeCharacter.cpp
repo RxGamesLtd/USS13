@@ -40,7 +40,7 @@ ASS13RemakeCharacter::ASS13RemakeCharacter()
 
     // Create a camera boom...
     CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
-    CameraBoom->AttachToComponent(RootComponent, FAttachmentTransformRules(EAttachmentRule::KeepRelative, false));
+    CameraBoom->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
     CameraBoom->bAbsoluteRotation = true; // Don't want arm to rotate when character does
     CameraBoom->TargetArmLength = 800.f;
     CameraBoom->RelativeRotation = FRotator(-60.f, 0.f, 0.f);
@@ -49,6 +49,6 @@ ASS13RemakeCharacter::ASS13RemakeCharacter()
     // Create a camera...
     TopDownCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("TopDownCamera"));
     TopDownCameraComponent->AttachToComponent(
-      CameraBoom, FAttachmentTransformRules(EAttachmentRule::KeepRelative, false), USpringArmComponent::SocketName);
+      CameraBoom, FAttachmentTransformRules::KeepRelativeTransform, USpringArmComponent::SocketName);
     TopDownCameraComponent->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 }

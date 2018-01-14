@@ -23,9 +23,11 @@
 template <typename T>
 class TArray3D
 {
+public:
     using ValueType = T;
 
-public:
+    DECLARE_DELEGATE_RetVal_ThreeParams(ValueType, SetterDelegate, int32, int32, int32);
+
     // Default Constructor - do nothing
     TArray3D() : m_x(0), m_y(0), m_z(0), m_size(0) {}
 
@@ -236,7 +238,7 @@ public:
     }
 
     // Set value to a delegate return value
-    FORCEINLINE void set(TBaseDelegate<ValueType, int32, int32, int32> func)
+    FORCEINLINE void set(SetterDelegate func)
     {
         if(!func.IsBound())
             return;

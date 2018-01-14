@@ -23,15 +23,7 @@ struct FLUIDSIMULATIONMODULE_API FluidProperties
 
     float advection;
 
-    float force;
-
     float decay;
 
-    FluidProperties()
-    {
-        diffusion = 0.0f;
-        advection = 0.0f;
-        force = 0.0f;
-        decay = 0.0f;
-    }
+    FluidProperties() : diffusion(0.0f), advection(0.0f), decay(0.0f) {}
 };
